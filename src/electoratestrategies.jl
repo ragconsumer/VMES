@@ -63,3 +63,13 @@ function castballots(electorate::Matrix, strat::VoterStrategy, method::VotingMet
     estrat = ElectorateStrategy(0, [strat], [size(electorate, 2)])
     castballots(electorate, estrat, method, polldict)
 end
+
+"""
+    hontabulate(electorate::Matrix, method::VotingMethod)
+
+Tabulate the election that happens when everyone votes honestly.
+"""
+function hontabulate(electorate::Matrix, method::VotingMethod)
+    ballots = castballots(electorate, hon, method)
+    tabulate(ballots, method)
+end

@@ -45,7 +45,7 @@ rankedrobin = RankedRobin()
 smithscore = Smith(score)
 
 """
-    tabulate(::OneRoundMethod, ballots)
+    tabulate(ballots, ::OneRoundMethod)
     
 Tabulate the results of the method with the given ballots.
 
@@ -55,23 +55,23 @@ The returned object is an array that describes the full tabulation.
 # Examples
 ```jldoctest
 """
-function tabulate(::OneRoundMethod, ballots)
+function tabulate(ballots, ::OneRoundMethod)
     results = sum(ballots, dims=2)
     return results
 end
 
 """
-    tabulate(method::Top2Method, ballots)
+    tabulate(ballots::AbstractArray{T,2}, method::Top2Method) where T
 
 Tabulate a top two voting method. The results of the runoff will appear in the rightmost column.
 """
-function tabulate(method::Top2Method, ballots::AbstractArray{T,2}) where T
-    ncands = div(size(ballots, 2), 2)
-    r1results = tabulate(method.basemethod, view(ballots, :, 1:ncands))
+function tabulate(ballots::AbstractArray{T,2}, method::Top2Method) where T
+    ncands = div(size(ballots, 1), 2)
+    r1results = tabulate(view(ballots, 1:ncands, :), method.basemethod)
     relevantresults = view(r1results, :, size(r1results, 2))
     finalists = sort(top2(relevantresults))
     tallies = zeros(T, ncands)
-    for ranking in view(ballots, :, ncands+1:2ncands)
+    for ranking in eachslice(view(ballots, ncands+1:2ncands, :),dims=2)
         if ranking[finalists[1]] > ranking[finalists[2]]
             tallies[finalists[1]] += 1
         elseif ranking[finalists[1]] < ranking[finalists[2]]
@@ -115,11 +115,11 @@ The lowest indicies win all ties.
 
 # Examples
 ```jldoctest
-julia> VMs.top2([1,2,3,4,5])
+julia> VMES.top2([1,2,3,4,5])
 (5, 4)
-julia> VMs.top2([1,2,2,1,3])
+julia> VMES.top2([1,2,2,1,3])
 (5, 2)
-julia> VMs.top2([1,1,1,1])
+julia> VMES.top2([1,1,1,1])
 (1, 2)
 
 """

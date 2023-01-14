@@ -41,6 +41,9 @@ function vote(voter, strat::HonestVote, method::RankedMethod)
     return ballot
 end
 
+
+vote(voter, strat::HonestVote, method::PluralityVoting) = vote(voter, bullet, method)
+
 """
     vote(voter, strat::BulletVote, method::RankedMethod)
 
@@ -80,12 +83,12 @@ end
 """
     vote(voter, strat::BulletVote, method::Top2Method)
 
-Bullet vote in the first election. Vote honestly in the runoff.
+Vote in accordance with the blind strategy in the first election. Vote honestly in the runoff.
 """
-function vote(voter, strat::BulletVote, method::Top2Method)
+function vote(voter, strat::BlindStrategy, method::Top2Method)
     r1ballot = vote(voter, strat, method.basemethod)
     runoffprefs = vote(voter, hon, irv)
-    return [r1ballot;;runoffprefs]
+    return [r1ballot;runoffprefs]
 end
 
 """
@@ -105,11 +108,7 @@ Cast a blank ballot in both rounds.
 function vote(voter, strat::Abstain, method::Top2Method)
     return zeros(Int, length(voter)*2)
 end
-#=
-function everyonevote(electorate::Matrix, strat::VoterStrategy, method::VotingMethod)
-    return cat([vote(voter, strat, method) for voter in eachslice(electorate,dims=2)]...; dims=2)
-end
-=#
+
 """
     neededpolls(strat::VoterStrategy, ::VotingMethod)
 
