@@ -12,6 +12,16 @@ using Test
     @test vote([1,3,3,2],bullet,star)==[0,5,0,0]
     @test vote([1,4,3,5],bullet,pluralitytop2) == [0, 0, 0, 1,  0, 2, 1, 3]
     @test vote([1,4,3,5],bullet,VMES.Top2Method(VMES.score)) == [0,0,0,5, 0,2,1,3]
+    @test vote([-10,1,2,3],TopBottomThreshold(.6),approval) == [0,1,1,1]
+    @test vote([-10,1,2,3],TopBottomThreshold(.9),approval) == [0,0,1,1]
+    @test vote([-10,1,2,3],TopBottomThreshold(.95),approval) == [0,0,0,1]
+    @test vote([-10,1,2,3],TopBottomThreshold(1),approval) == [0,0,0,1]
+    @test vote([-10,1,2,3],TopMeanThreshold(0.5),approval) == [0,1,1,1]
+    @test vote([-10,1,2,3],TopMeanThreshold(0.6),approval) == [0,0,1,1]
+    @test vote([-10,1,2,3],TopMeanThreshold(0.6),star) == [0,0,5,5]
+    @test vote([-10,-1,1,10],StdThreshold(0),approval) == [0,0,1,1]
+    @test vote([-10,-1,1,10],StdThreshold(0.3),approval) == [0,0,0,1]
+    @test vote([-2,-1,1,2],StdThreshold(0.3),approval) == [0,0,1,1]
 end
 
 @testset "Electorate Strategies" begin

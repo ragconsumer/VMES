@@ -4,8 +4,9 @@ export plurality, pluralitytop2, approval, approvaltop2, star, irv, borda, minim
 abstract type VotingMethod end
 abstract type OneRoundMethod <: VotingMethod end #as opposed to top 2; this includes IRV
 abstract type RankedMethod <: OneRoundMethod end
-abstract type ScoringMethod <: OneRoundMethod end
-abstract type ApprovalMethod <: OneRoundMethod end
+abstract type CardinalMethod <: OneRoundMethod end
+abstract type ScoringMethod <: CardinalMethod end
+abstract type ApprovalMethod <: CardinalMethod end
 abstract type RankedCondorcet <: RankedMethod end
 abstract type CondorcetCompMatOnly <: RankedCondorcet end
 
@@ -16,7 +17,7 @@ struct Smith <: OneRoundMethod
     basemethod::OneRoundMethod
 end
 
-struct PluralityVoting <: ApprovalMethod; end
+struct PluralityVoting <: ApprovalMethod; end #irrelevant that it's considered a cardinal method in the code
 plurality = PluralityVoting()
 pluralitytop2 = Top2Method(plurality)
 struct ApprovalVoting <: ApprovalMethod; end
@@ -135,7 +136,7 @@ function top2(results)
         besti = 1
         secondi = 2
     end
-    for i in 3:length(results)
+    for i in 3:lastindex(results)
         if results[i] > secondresult
             if results[i] > bestresult
                 secondi, secondresult = besti, bestresult

@@ -1,5 +1,5 @@
 export vote
-export hon, bullet, abstain
+export hon, bullet, abstain, TopBottomThreshold, TopMeanThreshold, StdThreshold
 
 abstract type VoterStrategy end
 abstract type BlindStrategy <: VoterStrategy end
@@ -17,6 +17,12 @@ struct ViabilityAware <: VoterStrategy
     neededpolls::Vector
     pollinguncertainty::Float64
 end
+
+include("approvalstrats.jl")
+include("scorestrats.jl")
+include("rankedstrats.jl")
+include("top2strats.jl")
+include("experimentalstrats.jl")
 
 """
     vote(voter, strat::BlindStrategy, method::VotingMethod, polls)
@@ -41,62 +47,14 @@ function vote(voter, strat::HonestVote, method::RankedMethod)
     return ballot
 end
 
-
-vote(voter, strat::HonestVote, method::PluralityVoting) = vote(voter, bullet, method)
-
-"""
-    vote(voter, strat::BulletVote, method::RankedMethod)
-
-Bullet vote.
-"""
-function vote(voter, strat::BulletVote, method::RankedMethod)
-    ballot = zeros(Int, length(voter))
-    favorite = argmax(voter)
-    ballot[favorite] = length(voter) - 1
-    return ballot
-end
-
-"""
-    vote(voter, strat::BulletVote, method::ApprovalMethod)
-
-Bullet vote.
-"""
-function vote(voter, strat::BulletVote, method::ApprovalMethod)
-    ballot = zeros(Int, length(voter))
-    favorite = argmax(voter)
-    ballot[favorite] = 1
-    return ballot
-end
-
-"""
-    vote(voter, strat::BulletVote, method::ScoringMethod)
-
-Bullet vote.
-"""
-function vote(voter, strat::BulletVote, method::ScoringMethod)
-    ballot = zeros(Int, length(voter))
-    favorite = argmax(voter)
-    ballot[favorite] = method.maxscore
-    return ballot
-end
-
-"""
-    vote(voter, strat::BulletVote, method::Top2Method)
-
-Vote in accordance with the blind strategy in the first election. Vote honestly in the runoff.
-"""
-function vote(voter, strat::BlindStrategy, method::Top2Method)
-    r1ballot = vote(voter, strat, method.basemethod)
-    runoffprefs = vote(voter, hon, irv)
-    return [r1ballot;runoffprefs]
-end
+vote(voter, ::HonestVote, method::PluralityVoting) = vote(voter, bullet, method)
 
 """
     vote(voter, strat::Abstain, method::OneRoundMethod)
 
 Cast a blank ballot.
 """
-function vote(voter, strat::Abstain, method::OneRoundMethod)
+function vote(voter, ::Abstain, method::OneRoundMethod)
     return zeros(Int, length(voter))
 end
 
@@ -105,7 +63,7 @@ end
 
 Cast a blank ballot in both rounds.
 """
-function vote(voter, strat::Abstain, method::Top2Method)
+function vote(voter, ::Abstain, ::Top2Method)
     return zeros(Int, length(voter)*2)
 end
 
@@ -117,3 +75,14 @@ Specify the polls needed to use the strategy.
 neededpolls(strat::VoterStrategy, ::VotingMethod) = strat.neededpolls
 
 neededpolls(::BlindStrategy, ::VotingMethod) = []
+
+topballotmark(_, ::ApprovalMethod) = 1
+topballotmark(_, method::ScoringMethod) = method.maxscore
+topballotmark(voter, ::RankedMethod) = length(voter) - 1
+
+function vote(voter, ::BulletVote, method::OneRoundMethod)
+    ballot = zeros(Int, length(voter))
+    favorite = argmax(voter)
+    ballot[favorite] = topballotmark(voter, method)
+    return ballot
+end
