@@ -49,7 +49,7 @@ Bullet vote.
 function vote(voter, strat::BulletVote, method::RankedMethod)
     ballot = zeros(Int, length(voter))
     favorite = argmax(voter)
-    ballot[favorite] = length(voter) - 1
+    ballot[favorite] = length(voter) #- 1
     return ballot
 end
 
