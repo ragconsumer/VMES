@@ -1,6 +1,5 @@
-module VMs
-
 export tabulate, getwinners
+export plurality, pluralitytop2, approval, approvaltop2, star, irv, borda, minimax, rankedrobin
 
 abstract type VotingMethod end
 abstract type OneRoundMethod <: VotingMethod end #as opposed to top 2; this includes IRV
@@ -69,18 +68,17 @@ Tabulate a top two voting method. The results of the runoff will appear in the r
 function tabulate(method::Top2Method, ballots::AbstractArray{T,2}) where T
     ncands = div(size(ballots, 2), 2)
     r1results = tabulate(method.basemethod, view(ballots, :, 1:ncands))
-    relevantresults = view(r1results, end, :)
+    relevantresults = view(r1results, :, size(r1results, 2))
     finalists = sort(top2(relevantresults))
     tallies = zeros(T, ncands)
-    for ranking in view(ballots, :, ncands+1:end)
+    for ranking in view(ballots, :, ncands+1:2ncands)
         if ranking[finalists[1]] > ranking[finalists[2]]
-            tally1 += 1
-        else if ranking[finalists[1]] < ranking[finalists[2]]
-            tally2 += 1
+            tallies[finalists[1]] += 1
+        elseif ranking[finalists[1]] < ranking[finalists[2]]
+            tallies[finalists[2]] += 1
         end
     end
-    
-
+    return [r1results tallies]
 end
 
 """    
@@ -149,4 +147,3 @@ function top2(results)
     end
     return [besti, secondi]
 end
-end #module

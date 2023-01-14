@@ -1,6 +1,8 @@
 module VMES
 
 include("vms.jl")
-import .VMs
+include("strategies.jl")
+include("electoratestrategies.jl")
+include("fixedelectorates.jl")
 
 end
