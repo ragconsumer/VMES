@@ -1,5 +1,6 @@
 using VMES
 using Test
+import Statistics
 
 @testset "Basic Strategies" begin
     @test vote([1,4,3,5],hon,irv)==[0,2,1,3]
@@ -47,4 +48,35 @@ end
     @test VMES.top2([1,2,3,4,5])==[5, 4]
     @test VMES.top2([1,2,2,1,3])==[5, 2]
     @test VMES.top2([1,1,1,1])==[1, 2]
+end
+
+@testset "Polls" begin
+    polldict = Dict()
+    spec = VMES.BasicPollSpec(plurality, ElectorateStrategy(hon, 12))
+    @test VMES.addpoll!(Dict(), VMES.centersqueeze2, spec, [.1;.1;-.1;;]) == [.6;.35;.15;;]
+    @test VMES.addpoll!(Dict(), VMES.centersqueeze2, spec, [.6;.1;-.3;;]) == [1;.35;0;;]
+    p = VMES.addpoll!(Dict(), VMES.centersqueeze2, spec, [.1;.1;-.1;;], 0.01)
+    @test 0.1 > Statistics.std(p - [.6;.35;.15;;], corrected=false) > 0.00001
+    @test VMES.addpoll!(Dict(), VMES.centersqueeze2, spec, zeros(3,1), 0, [7,7,11,12]) == [0;.5;.5;;]
+
+    e = [1;0;;0;1]
+    spec = VMES.BasicPollSpec(plurality, ElectorateStrategy(hon, 2))
+    #Readd tests for administerpolls once I have a strategy that uses a poll implemented
+    #=estrat = ElectorateStrategy(hon, 2)
+    counts = Dict{}
+    for _ in 1:100
+        polldict = VMES.administerpolls(e, [estrat], [plurality], 0, 0, 1)
+        counts[polldict[spec]] = get(counts, polldict[spec], 0) + 1
+    end
+    @test counts[[1;0;;]] + counts[[0;1;;]] == 100
+    @test 20 < counts[[1;0;;]] < 80
+    counts = Dict{}
+    for _ in 1:100
+        polldict = VMES.administerpolls(e, [spec], [plurality], 0, 0, 2)
+        counts[polldict[spec]] = get(counts, polldict[spec], 0) + 1
+    end
+    @test counts[[1;0;;]] + counts[[0;1;;]] + counts[[0.5;0.5;;]]== 100
+    @test 30 < counts[[0.5;0.5;;]] < 70
+    =#
+    
 end

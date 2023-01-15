@@ -23,9 +23,16 @@ end
 Create an ElectorateStrategy that has nstrategists using strategy (and being open to further strategizing for PVSI and ESIF),
 nhons voters voting honestly, and nbullets voters bullet voting no matter what.
 """
-function ElectorateStrategy(strategy, nstrategists::Int, nhons::Int, nbullets::Int)
+function ElectorateStrategy(strategy::VoterStrategy, nstrategists::Int, nhons::Int, nbullets::Int)
     return ElecorateStrategy(nstrategists, [strategy, hon, bullet], [nstrategists, nhons, nbullets])
 end
+
+"""
+    ElectorateStrategy(strategy::VoterStrategy, nvot::Int)
+
+Create an ElectorateStrategy in which everyone uses the same strategy.
+"""
+ElectorateStrategy(strategy::VoterStrategy, nvot::Int) = ElectorateStrategy(nvot, [strategy], [nvot])
 
 """
     castballots(electorate::Matrix, estrat::ElectorateStrategy, method::VotingMethod, polldict)

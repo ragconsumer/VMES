@@ -67,14 +67,7 @@ function vote(voter, ::Abstain, ::Top2Method)
     return zeros(Int, length(voter)*2)
 end
 
-"""
-    neededpolls(strat::VoterStrategy, ::VotingMethod)
 
-Specify the polls needed to use the strategy.
-"""
-neededpolls(strat::VoterStrategy, ::VotingMethod) = strat.neededpolls
-
-neededpolls(::BlindStrategy, ::VotingMethod) = []
 
 topballotmark(_, ::ApprovalMethod) = 1
 topballotmark(_, method::ScoringMethod) = method.maxscore

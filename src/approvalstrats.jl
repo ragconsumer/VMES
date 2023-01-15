@@ -44,12 +44,12 @@ end
 """
     vote(voter, strategy::TopMeanThreshold, method::CardinalMethod)
 
-    Vote for every candidate whose utility is at least threhsold standard deviations above the mean.
+    Vote for every candidate whose utility is at least threshold standard deviations above the mean.
     Also votes for the best candidate no matter what.
 """
 function vote(voter, strategy::StdThreshold, method::CardinalMethod)
     mean = Statistics.mean(voter)
-    std = Statistics.std(voter)
+    std = Statistics.std(voter, corrected=false)
     top = maximum(voter)
     [util==top || util - mean >= strategy.threshold*std ? topballotmark(voter, method) : 0
         for util in voter]
