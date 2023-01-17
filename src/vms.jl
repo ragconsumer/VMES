@@ -1,6 +1,3 @@
-export tabulate, getwinners
-export plurality, pluralitytop2, approval, approvaltop2, star, irv, borda, minimax, rankedrobin
-
 abstract type VotingMethod end
 abstract type OneRoundMethod <: VotingMethod end #as opposed to top 2; this includes IRV
 abstract type RankedMethod <: OneRoundMethod end
@@ -9,6 +6,9 @@ abstract type ScoringMethod <: CardinalMethod end
 abstract type ApprovalMethod <: CardinalMethod end
 abstract type RankedCondorcet <: RankedMethod end
 abstract type CondorcetCompMatOnly <: RankedCondorcet end
+abstract type RankedChoiceVoting <: RankedMethod end
+
+include("mwmethods.jl")
 
 struct Top2Method <: VotingMethod
     basemethod::OneRoundMethod
@@ -33,8 +33,6 @@ struct STARVoting <: ScoringMethod
 end
 star = STARVoting(5)
 
-struct InstantRunoffVoting <: RankedMethod; end
-irv = InstantRunoffVoting()
 struct BordaCount <: RankedMethod; end
 borda = BordaCount()
 
@@ -44,6 +42,19 @@ struct RankedRobin <: RankedCondorcet; end
 rankedrobin = RankedRobin()
 
 smithscore = Smith(score)
+
+"""
+    tabulate(ballots, method::Votingmethod, nwinners::Int)
+
+Tabulate an election.
+"""
+function tabulate(ballots, method::VotingMethod, nwinners::Int)
+    if nwinners != 1
+        throw(ArgumentError("Method not implemented for multiple winners"))
+    else
+        tabulate(ballots, method)
+    end
+end
 
 """
     tabulate(ballots, ::OneRoundMethod)
@@ -83,7 +94,6 @@ function tabulate(ballots::AbstractArray{T,2}, method::Top2Method) where T
 end
 
 """    
-end
     getwinners(tabulation::AbstractArray, ::VotingMethod)
 
 Determine the winner and put it in a vector of length 1.
@@ -148,3 +158,37 @@ function top2(results)
     end
     return [besti, secondi]
 end
+
+"""
+    star_runoff(ballots, finalist1, finalist2)
+
+Perform a STAR-style runoff between the finalists.
+"""
+function star_runoff(ballots, finalist1, finalist2)
+    tallies = zeros(Int, size(ballots, 1))
+    for ballot in eachslice(ballots, dims=2)
+        if ballot[finalist1] > ballot[finalist2]
+            tallies[finalist1] += 1
+        elseif ballot[finalist1] < ballot[finalist2]
+            tallies[finalist2] += 1
+        end
+    end
+    return tallies
+end
+
+"""
+    tabulate(ballots, ::STARVoting)
+
+Tabulate a STAR election.
+
+Tiebreakers are determined by candidate indices; official STAR tiebreaker rules are not used.
+(The purpose of this is to eliminate incentives to maximize the difference in scores between finalists
+when it's near-certain who the finalists will be. This incentive is negligible in STAR incentives with
+large electorates, but could be very significant with well under 100 voters.)
+"""
+function tabulate(ballots, ::STARVoting)
+    r1results = sum(ballots, dims=2)
+    runoffresults = star_runoff(ballots, top2(r1results)...)
+    return [r1results runoffresults]
+end
+

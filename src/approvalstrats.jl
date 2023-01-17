@@ -1,4 +1,4 @@
-import Statistics
+
 
 vote(voter, ::HonestVote, method::ApprovalMethod) = vote(voter, TopMeanthreshold(0.4), method)
 

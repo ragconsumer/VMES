@@ -16,7 +16,7 @@ Conduct all polls that are required for the given electorate strategies.
 
 estrats and methods must be vectors of the same length.
 """
-function administerpolls(electorate, estrats::Vector{ElectorateStrategy}, methods::Vector{VotingMethod},
+function administerpolls(electorate, estrats::Vector{ElectorateStrategy}, methods::Vector,
                         correlatednoise::Number, iidnoise::Number, samplesize=nothing)
     polldict = Dict()
     if samplesize === nothing

@@ -1,4 +1,4 @@
-export ElectorateStrategy, castballots
+
 
 """
 Describes the strategies used by all the voters in an electorate.
@@ -76,7 +76,7 @@ end
 
 Tabulate the election that happens when everyone votes honestly.
 """
-function hontabulate(electorate::Matrix, method::VotingMethod)
-    ballots = castballots(electorate, hon, method)
-    tabulate(ballots, method)
+function hontabulate(electorate::Matrix, method::VotingMethod, nwinners=1)
+    ballots = castballots(electorate, hon, method, nwinners)
+    tabulate(ballots, method, nwinners)
 end

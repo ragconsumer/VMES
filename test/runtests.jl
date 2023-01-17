@@ -48,6 +48,37 @@ end
     @test VMES.top2([1,2,3,4,5])==[5, 4]
     @test VMES.top2([1,2,2,1,3])==[5, 2]
     @test VMES.top2([1,1,1,1])==[1, 2]
+
+    @testset "RCV" begin
+        @test VMES.hontabulate(VMES.centersqueeze1, irv)==[5; 2; 4;; 5; 0; 6]
+        @test VMES.hontabulate(VMES.centersqueeze2, irv)==[6; 3; 3;; 6; 6; 0]
+        @test VMES.hontabulate(VMES.fivecand2party, rcv, 1)==[  8.0  12.0  12.0  12.0
+                                                                4.0   0     0     0
+                                                                6.0   6.0   6.0   0
+                                                                6.0   6.0  11.0  17.0
+                                                                5.0   5.0   0     0]
+        @test VMES.hontabulate(VMES.fivecand2party, rcv, 2)≈[ 8.0  12.0  10.0  10.0
+                                                                4.0   0.0   0.0   0.0
+                                                                6.0   6.0   8.0   8.0
+                                                                6.0   6.0   6.0  11.0
+                                                                5.0   5.0   5.0   0.0]
+        @test VMES.hontabulate(VMES.fivecand2party, rcv, 3)≈[ 8.0  8.0   8.0  8.0
+                                                                4.0  4.0   0.0  0.0
+                                                                6.0  6.0  10.0  8.0
+                                                                6.0  6.0   6.0  8.0
+                                                                5.0  5.0   5.0  5.0]
+        @test VMES.hontabulate(VMES.fivecand2partymessier, rcv, 2)≈[8.0  12.0  10.0      10.0
+                                                                    4.0   0.0   0.0       0.0
+                                                                    6.0   6.0   7.666666667   7.666666667
+                                                                    6.0   6.0   6.333333333  11.333333333
+                                                                    5.0   5.0   5.0       0.0]
+        @test tabulate(VMES.manybulletranked, rcv, 3) ≈ [7.0   7.0   7.0    7.0
+                                                        4.0   4.0   4.75   0.0
+                                                        6.0   6.0   6.0   10.75
+                                                        20.0  11.0  11.0   11.0
+                                                        3.0  12.0  11.0   11.0]
+        VMES.hontabulate(VMES.reversespoiler, rcv) == [12; 6; 2;;]
+    end
 end
 
 @testset "Polls" begin
@@ -61,6 +92,7 @@ end
 
     e = [1;0;;0;1]
     spec = VMES.BasicPollSpec(plurality, ElectorateStrategy(hon, 2))
+    @test VMES.administerpolls(e, [ElectorateStrategy(hon, 2)], [plurality], 0, 0, 1) == Dict()
     #Readd tests for administerpolls once I have a strategy that uses a poll implemented
     #=estrat = ElectorateStrategy(hon, 2)
     counts = Dict{}
