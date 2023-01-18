@@ -1,6 +1,3 @@
-export vote
-export hon, bullet, abstain, TopBottomThreshold, TopMeanThreshold, StdThreshold
-
 abstract type VoterStrategy end
 abstract type BlindStrategy <: VoterStrategy end
 
@@ -18,6 +15,7 @@ struct ViabilityAware <: VoterStrategy
     pollinguncertainty::Float64
 end
 
+include("pollstoprobs.jl")
 include("approvalstrats.jl")
 include("scorestrats.jl")
 include("rankedstrats.jl")

@@ -25,11 +25,11 @@ approval = ApprovalVoting()
 approvaltop2 = Top2Method(approval)
 
 struct ScoreVoting <: ScoringMethod
-    maxscore::Int8
+    maxscore::Int
 end
 score = ScoreVoting(5)
 struct STARVoting <: ScoringMethod
-    maxscore::Int8
+    maxscore::Int
 end
 star = STARVoting(5)
 

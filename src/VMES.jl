@@ -4,10 +4,13 @@ export tabulate, getwinners
 export plurality, pluralitytop2, approval, approvaltop2, star, irv, rcv, borda, minimax, rankedrobin
 export vote
 export hon, bullet, abstain, TopBottomThreshold, TopMeanThreshold, StdThreshold
+export ExpScale, topbotem, topmeanem, scorebystd
 export ElectorateStrategy, castballots
 
 
 import Statistics
+import Distributions
+import Optim
 
 include("vms.jl")
 include("strategies.jl")

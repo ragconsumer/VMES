@@ -54,3 +54,12 @@ function vote(voter, strategy::StdThreshold, method::CardinalMethod)
     [util==top || util - mean >= strategy.threshold*std ? topballotmark(voter, method) : 0
         for util in voter]
 end
+
+struct ApprovalVA <: VoterStrategy
+    pollinguncertainty::Float64
+end
+
+function vote(voter, _::ApprovalVA, method::CardinalMethod, winprobs)
+    expectedValue = sum(voter[i]*winprobs[i] for i in eachindex(voter, winprobs))
+    [util >=expectedValue ? topballotmark(voter, method) : 0 for util in voter]
+end

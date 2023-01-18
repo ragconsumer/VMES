@@ -23,6 +23,20 @@ import Statistics
     @test vote([-10,-1,1,10],StdThreshold(0),approval) == [0,0,1,1]
     @test vote([-10,-1,1,10],StdThreshold(0.3),approval) == [0,0,0,1]
     @test vote([-2,-1,1,2],StdThreshold(0.3),approval) == [0,0,1,1]
+
+    @test VMES.mean_plus_std([0,2]) == 2
+    @test vote([0,0.8,1,2,3,4,4.2,5], topbotem, star) == [0,0,1,2,3,4,5,5]
+    @test vote([0,0.8,1,2,3,4,4.2,5],
+                VMES.ArbitraryScoreScale(maximum, minimum, 1, 0, VMES.roundtoscore),
+                star) == [0,1,1,2,3,4,4,5]
+    @test vote([-10,0,0,0,0,1,2], topbotem, star) == [0,4,4,4,4,5,5]
+    @test vote([-10,0,0,0,0,1,2], topmeanem, star) == [0,3,3,3,3,4,5]
+    @test vote([-12,-1,0,0,0,2,10], scorebystd(1), star) == [0,2,3,3,3,4,5]
+    @test vote([-12,-1,0,0,0,2,10], scorebystd(0.4), star) == [0,1,3,3,3,5,5]
+    @test vote([-12,-1,0,0,0,2,10], topmeanem, star) == [0,2,3,3,3,3,5]
+    @test vote([0,0.8,1,2,3,4,4.2,5], ExpScale(1), star) == [0,0,1,2,3,4,5,5]
+    @test vote([0,0.8,1,2,3,4,4.2,5], ExpScale(2), star) == [0,0,0,0,2,3,4,5]
+    @test vote([0,0.8,1,2,3,4,4.2,5], ExpScale(5), star) == [0,0,0,0,0,1,2,5]
 end
 
 @testset "Electorate Strategies" begin
@@ -35,6 +49,10 @@ end
             2  2  2  2  0  0  0  0  0  0  0
             1  1  1  1  0  0  2  0  0  0  0
             0  0  0  0  0  0  0  2  2  2  2]
+end
+
+@testset "Polls to Probabilities" begin
+    @test VMES.betaprobs([0.4,0.4,0.5],0.1) ≈ [0.16885924923285558, 0.16885924923285558, 0.6622815015342889]
 end
 
 @testset "VM Tabulation" begin
