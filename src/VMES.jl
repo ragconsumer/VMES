@@ -5,6 +5,7 @@ export plurality, pluralitytop2, approval, approvaltop2, star, irv, rcv, borda, 
 export vote
 export hon, bullet, abstain, TopBottomThreshold, TopMeanThreshold, StdThreshold
 export ExpScale, topbotem, topmeanem, scorebystd
+export PluralityVA, ApprovalVA
 export ElectorateStrategy, castballots
 
 

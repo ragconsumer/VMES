@@ -39,6 +39,13 @@ import Statistics
     @test vote([0,0.8,1,2,3,4,4.2,5], ExpScale(5), star) == [0,0,0,0,0,1,2,5]
 end
 
+@testset "Viability-Aware Strategies" begin
+    @test vote([0,1,5], PluralityVA(nothing, 0.1), plurality, [.49,.49,.02]) == [0,1,0]
+    @test vote([0,1,5], PluralityVA(nothing, 0.1), plurality, [.05,.9,.05]) == [0,0,1]
+    @test vote([0,1,5], ApprovalVA(nothing, 0.1), approval, [.49,.49,.02]) == [0,1,1]
+    @test vote([0,1,5], ApprovalVA(nothing, 0.1), approval, [.05,.9,.05]) == [0,0,1]
+end
+
 @testset "Electorate Strategies" begin
     @test castballots(VMES.centersqueeze1, hon, irv) == [
         2  2  2  2  2  0  0  0  0  0  0
@@ -102,31 +109,31 @@ end
 @testset "Polls" begin
     polldict = Dict()
     spec = VMES.BasicPollSpec(plurality, ElectorateStrategy(hon, 12))
-    @test VMES.addpoll!(Dict(), VMES.centersqueeze2, spec, [.1;.1;-.1;;]) == [.6;.35;.15;;]
-    @test VMES.addpoll!(Dict(), VMES.centersqueeze2, spec, [.6;.1;-.3;;]) == [1;.35;0;;]
-    p = VMES.addpoll!(Dict(), VMES.centersqueeze2, spec, [.1;.1;-.1;;], 0.01)
+    @test VMES.addinfo!(Dict(), VMES.centersqueeze2, spec, [.1;.1;-.1;;]) == [.6;.35;.15;;]
+    @test VMES.addinfo!(Dict(), VMES.centersqueeze2, spec, [.6;.1;-.3;;]) == [1;.35;0;;]
+    p = VMES.addinfo!(Dict(), VMES.centersqueeze2, spec, [.1;.1;-.1;;], 0.01)
     @test 0.1 > Statistics.std(p - [.6;.35;.15;;], corrected=false) > 0.00001
-    @test VMES.addpoll!(Dict(), VMES.centersqueeze2, spec, zeros(3,1), 0, [7,7,11,12]) == [0;.5;.5;;]
+    @test VMES.addinfo!(Dict(), VMES.centersqueeze2, spec, zeros(3,1), 0, [7,7,11,12]) == [0;.5;.5;;]
 
     e = [1;0;;0;1]
     spec = VMES.BasicPollSpec(plurality, ElectorateStrategy(hon, 2))
     @test VMES.administerpolls(e, [ElectorateStrategy(hon, 2)], [plurality], 0, 0, 1) == Dict()
-    #Readd tests for administerpolls once I have a strategy that uses a poll implemented
-    #=estrat = ElectorateStrategy(hon, 2)
-    counts = Dict{}
+
+    estrat = ElectorateStrategy(hon, 2)
+    vaestrat = ElectorateStrategy(PluralityVA(VMES.WinProbSpec(spec, 0.1), 0.1), 2)
+    counts = Dict{Array, Int}()
     for _ in 1:100
-        polldict = VMES.administerpolls(e, [estrat], [plurality], 0, 0, 1)
+        polldict = VMES.administerpolls(e, [vaestrat], [plurality], 0, 0, 1)
         counts[polldict[spec]] = get(counts, polldict[spec], 0) + 1
     end
     @test counts[[1;0;;]] + counts[[0;1;;]] == 100
     @test 20 < counts[[1;0;;]] < 80
-    counts = Dict{}
+    counts = Dict{}()
     for _ in 1:100
-        polldict = VMES.administerpolls(e, [spec], [plurality], 0, 0, 2)
+        polldict = VMES.administerpolls(e, [vaestrat], [plurality], 0, 0, 2)
         counts[polldict[spec]] = get(counts, polldict[spec], 0) + 1
     end
     @test counts[[1;0;;]] + counts[[0;1;;]] + counts[[0.5;0.5;;]]== 100
     @test 30 < counts[[0.5;0.5;;]] < 70
-    =#
     
 end

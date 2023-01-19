@@ -1,5 +1,6 @@
 abstract type VoterStrategy end
 abstract type BlindStrategy <: VoterStrategy end
+abstract type InformedStrategy <: VoterStrategy end
 
 struct HonestVote <: BlindStrategy; end
 hon = HonestVote()
@@ -76,4 +77,8 @@ function vote(voter, ::BulletVote, method::OneRoundMethod)
     favorite = argmax(voter)
     ballot[favorite] = topballotmark(voter, method)
     return ballot
+end
+
+function vote(voter, strat::InformedStrategy, method::OneRoundMethod, infodict::Dict)
+    vote(voter, strat, method, infodict[neededinfo(strat, method)])
 end

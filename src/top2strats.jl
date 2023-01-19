@@ -8,3 +8,9 @@ function vote(voter, strat::BlindStrategy, method::Top2Method)
     runoffprefs = vote(voter, hon, irv)
     return [r1ballot;runoffprefs]
 end
+
+function vote(voter, strat::InformedStrategy, method::Top2Method, infodict::Dict)
+    r1ballot = vote(voter, strat, method, infodict[neededinfo(strat, method)]);;
+    runoffprefs = vote(voter, hon, irv)
+    return [r1ballot;runoffprefs]
+end

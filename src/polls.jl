@@ -1,4 +1,6 @@
-abstract type PollSpec end
+abstract type InfoSpec end
+abstract type PollSpec <: InfoSpec end
+abstract type ProbSpec <: InfoSpec end
 
 """
 Handles polls for voting methods where the tabulation gives only a single line for each candidate.
@@ -7,6 +9,16 @@ struct BasicPollSpec <: PollSpec
     method::VotingMethod
     estrat::ElectorateStrategy
 end
+
+struct WinProbSpec <: ProbSpec
+    pollspec::PollSpec #the specification of the poll the probabilities are estimated from
+    uncertainty::Float64
+end
+
+struct TieForTwoSpec <: ProbSpec
+    winprobspec::WinProbSpec
+end
+
 
 """
     administerpolls(electorate, estrats::Vector{ElectorateStrategy}, methods::Vector{VotingMethod},
@@ -18,7 +30,7 @@ estrats and methods must be vectors of the same length.
 """
 function administerpolls(electorate, estrats::Vector{ElectorateStrategy}, methods::Vector,
                         correlatednoise::Number, iidnoise::Number, samplesize=nothing)
-    polldict = Dict()
+    infodict = Dict()
     if samplesize === nothing
         respondants = nothing
     else
@@ -26,41 +38,52 @@ function administerpolls(electorate, estrats::Vector{ElectorateStrategy}, method
     end
     noisevector = correlatednoise .* randn(size(electorate,1))
     for i in eachindex(estrats, methods)
-        for spec in neededpolls(estrats[i], methods[i])
-            addpoll!(polldict, electorate, spec, noisevector, iidnoise, respondants)
+        for spec in neededinfo(estrats[i], methods[i])
+            addinfo!(infodict, electorate, spec, noisevector, iidnoise, respondants)
         end
     end
-    return polldict
+    return infodict
 end
 """
-    addpoll!(polldict, electorate, spec::PollSpec, noisevector, iidnoise=0, respondants=nothing)
+    addinfo!(infodict, electorate, spec::InfoSpec, noisevector, iidnoise=0, respondants=nothing)
 
 Conduct the specified poll and add it to polldict, along with the polls required to conduct it.
 
 #args
- - `polldict`: A dict in which the keys are poll specifications and the values are the poll results.
+ - `infodict`: A dict in which the keys are specifications for info
+                and the values are the correcsponding info.
  - `electorate`: The electorate.
- - `spec`: The poll specifications, as determined by the strategy that will use it.
- - `noisevector`: A vector giving the poll's bias in favor of each individual candidate.
- - `iidnoise`: A float that determines how much noise is added to each result, uncorrelated from anything else
+ - `spec`: The poll/info specifications, as determined by the strategy that will use it.
+ - `noisevector`: A vector giving polling bias in favor of each individual candidate.
+ - `iidnoise`: A float that determines how much noise is added to each result in each poll,
+                uncorrelated from anything else
  - `respondants`: The indicies of the subset of the electorate that will be polled.
                     If set to nothing the whole electorate will be polled.
 """
-function addpoll!(polldict, electorate, spec::PollSpec, noisevector, iidnoise=0, respondants=nothing)
-    if haskey(polldict, spec)
-        return polldict[spec]
+function addinfo!(infodict, electorate, spec::InfoSpec, noisevector, iidnoise=0, respondants=nothing)
+    if haskey(infodict, spec)
+        return infodict[spec]
     end
-    for dependency in neededpolls(spec.estrat, spec.method) #I may want to turn this into a macro
-        if !haskey(polldict, dependency)
-            addpoll!(polldict, electorate, dependency, noisevector, iidnoise, respondants)
+    for dependency in neededinfo(spec)
+        if !haskey(infodict, dependency)
+            addinfo!(infodict, electorate, dependency, noisevector, iidnoise, respondants)
         end
     end
+    addspecificinfo!(infodict, electorate, spec, noisevector, iidnoise, respondants)
+end
+
+"""
+    addspecificinfo!(infodict, electorate, spec::PollSpec, noisevector, iidnoise, respondants)
+
+Add the specified poll to infodict
+"""
+function addspecificinfo!(infodict, electorate, spec::PollSpec, noisevector, iidnoise, respondants)
     if respondants === nothing
-        ballots = castballots(electorate, spec.estrat, spec.method, polldict)
+        ballots = castballots(electorate, spec.estrat, spec.method, infodict)
     else
-        ballots = castballots(electorate, spec.estrat, spec.method, polldict)[:,respondants]
+        ballots = castballots(electorate, spec.estrat, spec.method, infodict)[:,respondants]
     end
-    polldict[spec] = makepoll(ballots, spec, noisevector, iidnoise)
+    infodict[spec] = makepoll(ballots, spec, noisevector, iidnoise)
 end
 
 """
@@ -77,17 +100,51 @@ function makepoll(ballots, spec::BasicPollSpec, noisevector, iidnoise)
 end
 
 """
-    neededpolls(strat::VoterStrategy, ::VotingMethod)
+    addspecificinfo!(infodict, electorate, spec::WinProbSpec, noisevector, iidnoise, respondants)
 
-Specify the polls needed to use the strategy.
+Add the data for spec to infodict.
 """
-neededpolls(strat::VoterStrategy, ::VotingMethod) = strat.neededpolls
-neededpolls(::BlindStrategy, ::VotingMethod) = Set()
-
-function neededpolls(estrat::ElectorateStrategy, method::VotingMethod)
-    reduce(union, [neededpolls(strat, method) for strat in estrat.stratlist])
+function addspecificinfo!(infodict, electorate, spec::WinProbSpec, noisevector, iidnoise, respondants)
+    infodict[spec] = betaprobs(infodict[spec.pollspec], spec.uncertainty)
 end
 
+function addspecificinfo!(infodict, electorate, spec::TieForTwoSpec, noisevector, iidnoise, respondants)
+    #NYI
+    #infodict[spec] = betaprobs(infodict[spec.wimprobspec], spec.uncertainty)
+end
+
+"""
+    neededinfo(strat::VoterStrategy, ::VotingMethod)
+
+Specify the info (polls or estimated probabilities) needed to use the strategy.
+
+Must return a set.
+"""
+neededinfo(strat::VoterStrategy, ::VotingMethod) = Set([strat.neededinfo])
+neededinfo(::BlindStrategy, ::VotingMethod) = Set()
+neededinfo(spec::BasicPollSpec) = neededinfo(spec.estrat, spec.method)
+neededinfo(spec::WinProbSpec) = Set([spec.pollspec])
+neededinfo(spec::TieForTwoSpec) = Set([spec.winprobspec])
+
+function neededinfo(estrat::ElectorateStrategy, method::VotingMethod)
+    reduce(union, [neededinfo(strat, method) for strat in estrat.stratlist])
+end
+
+"""
+    info_used(strat::VoterStrategy, ::VotingMethod)
+
+Specify the info the will be provided to the strategy function.
+
+Unlike neededinfo, returns the object rather than a set containing it, or nothing if no info is needed.
+"""
+info_used(strat::InformedStrategy, ::VotingMethod) = strat.neededinfo
+info_used(::BlindStrategy, ::VotingMethod) = nothing
+
+"""
+    pollscalefactor(::VotingMethod, ballots)
+
+The factor that all poll results must be multipied by to lie in [0, 1].
+"""
 pollscalefactor(::ApprovalMethod, ballots) = 1/size(ballots, 2)
 pollscalefactor(method::ScoringMethod, ballots) = 1/(method.maxscore*size(ballots, 2))
 pollscalefactor(::BordaCount, ballots) = 1/((size(ballots,1) - 1)*size(ballots, 2))

@@ -39,9 +39,8 @@ ElectorateStrategy(strategy::VoterStrategy, nvot::Int) = ElectorateStrategy(nvot
 
 Everyone votes in accordance with estrat.
 """
-function castballots(electorate::Matrix, estrat::ElectorateStrategy, method::VotingMethod, polldict=nothing)
+function castballots(electorate::Matrix, estrat::ElectorateStrategy, method::VotingMethod, infodict=nothing)
     nvot = size(electorate, 2)
-    vcount = 0
     stratindex = 1
     votersleft = estrat.stratusers[1]
     stratvector = Vector{Int}(undef, nvot)
@@ -56,7 +55,9 @@ function castballots(electorate::Matrix, estrat::ElectorateStrategy, method::Vot
 
     ballots = Array{Any}(undef, nvot)
     for (i, voter) in enumerate(eachslice(electorate,dims=2))
-        ballots[i] = vote(voter, estrat.stratlist[stratvector[i]], method, polldict)
+        strat = estrat.stratlist[stratvector[i]]
+        info_for_strat = isnothing(info_used(strat, method)) ? nothing : infodict[info_used(strat, method)]
+        ballots[i] = vote(voter, strat, method, info_for_strat)
     end
     return cat(ballots...; dims=2)
 end

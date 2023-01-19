@@ -55,11 +55,24 @@ function vote(voter, strategy::StdThreshold, method::CardinalMethod)
         for util in voter]
 end
 
-struct ApprovalVA <: VoterStrategy
+struct ApprovalVA <: InformedStrategy
+    neededinfo
     pollinguncertainty::Float64
 end
 
 function vote(voter, _::ApprovalVA, method::CardinalMethod, winprobs)
-    expectedValue = sum(voter[i]*winprobs[i] for i in eachindex(voter, winprobs))
-    [util >=expectedValue ? topballotmark(voter, method) : 0 for util in voter]
+    expectedvalue = sum(voter[i]*winprobs[i] for i in eachindex(voter, winprobs))
+    [util >=expectedvalue ? topballotmark(voter, method) : 0 for util in voter]
+end
+
+struct PluralityVA <: InformedStrategy
+    neededinfo
+    pollinguncertainty::Float64
+end
+
+function vote(voter, _::PluralityVA, method::VotingMethod, winprobs)
+    expectedvalue = sum(voter[i]*winprobs[i] for i in eachindex(voter, winprobs))
+    ballot = zeros(Int, length(voter))
+    ballot[argmax((voter[i]-expectedvalue)*winprobs[i] for i in eachindex(voter, winprobs))] = topballotmark(voter, method)
+    return ballot
 end
