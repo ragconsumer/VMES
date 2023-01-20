@@ -60,6 +60,11 @@ struct ApprovalVA <: InformedStrategy
     pollinguncertainty::Float64
 end
 
+"""
+    vote(voter, _::ApprovalVA, method::CardinalMethod, winprobs)
+
+Vote for every candidate whose election is at least as good as the expected outcome.
+"""
 function vote(voter, _::ApprovalVA, method::CardinalMethod, winprobs)
     expectedvalue = sum(voter[i]*winprobs[i] for i in eachindex(voter, winprobs))
     [util >=expectedvalue ? topballotmark(voter, method) : 0 for util in voter]
@@ -70,6 +75,11 @@ struct PluralityVA <: InformedStrategy
     pollinguncertainty::Float64
 end
 
+"""
+    vote(voter, _::PluralityVA, method::VotingMethod, winprobs)
+
+Vote for the candidate whose probability of winning times utility above expectation is the greatest.
+"""
 function vote(voter, _::PluralityVA, method::VotingMethod, winprobs)
     expectedvalue = sum(voter[i]*winprobs[i] for i in eachindex(voter, winprobs))
     ballot = zeros(Int, length(voter))

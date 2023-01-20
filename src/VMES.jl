@@ -7,9 +7,10 @@ export hon, bullet, abstain, TopBottomThreshold, TopMeanThreshold, StdThreshold
 export ExpScale, topbotem, topmeanem, scorebystd
 export PluralityVA, ApprovalVA
 export ElectorateStrategy, castballots
+export ic, ImpartialCulture, DimModel
 
 
-import Statistics
+import Statistics, Random
 import Distributions
 import Optim
 
@@ -17,6 +18,7 @@ include("vms.jl")
 include("strategies.jl")
 include("electoratestrategies.jl")
 include("polls.jl")
+include("votermodels.jl")
 include("fixedelectorates.jl")
 
 end

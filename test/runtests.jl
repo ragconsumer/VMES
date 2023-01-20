@@ -2,6 +2,17 @@ using VMES
 using Test
 import Statistics
 
+@testset "Voter Models" begin
+    e = VMES.make_electorate(ic, 30, 5, 1234567)
+    @test VMES.getseed(e) == 1234567
+    @test size(VMES.make_electorate(ic, 5,2)) == (2,5)
+    @test size(VMES.make_electorate(VMES.DimModel(1), 5,2)) == (2,5)
+    for n in 1:4
+        meandiff = Statistics.mean(Statistics.mean(VMES.make_electorate(VMES.DimModel(n), 5,5) .^ 2) for i in 1:1000)
+        @test 0.9*(2n) < meandiff < 1.1*(2n)
+    end
+end
+
 @testset "Basic Strategies" begin
     @test vote([1,4,3,5],hon,irv)==[0,2,1,3]
     @test vote([1,3,3,2],hon,irv)==[0,3,2,1]
