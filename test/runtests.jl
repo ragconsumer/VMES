@@ -85,6 +85,9 @@ end
     @test VMES.top2([1,2,2,1,3])==[5, 2]
     @test VMES.top2([1,1,1,1])==[1, 2]
 
+    @test tabulate(VMES.startestballots, score) == [50; 43; 43;;]
+    @test tabulate(VMES.startestballots, star) == [50; 43; 43;; 10; 11; 0]
+
     @testset "RCV" begin
         @test VMES.hontabulate(VMES.centersqueeze1, irv)==[5; 2; 4;; 5; 0; 6]
         @test VMES.hontabulate(VMES.centersqueeze2, irv)==[6; 3; 3;; 6; 6; 0]

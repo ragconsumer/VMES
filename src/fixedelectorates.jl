@@ -27,3 +27,10 @@ manybulletranked = [repeat([4,3,0,0,0], outer=(1,5));;
                     repeat([0,0,0,0,4], outer=(1,3));;
                     repeat([0,2,1,4,3], outer=(1,20));;
                     repeat([4,0,0,3,0], outer=(1,2));;]
+
+
+startestballots = [repeat([5,0,0], outer=(1,10));;
+                    repeat([0,1,5], outer=(1,3));;
+                    repeat([0,5,1], outer=(1,3));;
+                    repeat([0,0,5], outer=(1,5));;
+                    repeat([0,5,0], outer=(1,5))]
