@@ -11,6 +11,22 @@ struct DimModel <: SpatialModel
     dimweights
 end
 
+struct DCCModel <: SpatialModel
+    viewdecaydist
+    viewcut
+    dimdecaydist
+    dimcut
+    clusteralpha
+    caringdist
+end
+
+"""
+Use the defaults from the Python VSE code.
+"""
+dcc = DCCModel(Distributions.Uniform(), 0.2,
+                        Distributions.Uniform(), 0.2,
+                        1, Distributions.Beta(6, 3))
+
 """
 A container for containing both an electorate and the seed that generated it.
 """
@@ -68,4 +84,171 @@ function make_electorate(model::DimModel, nvot::Int, ncand::Int, seed::Int)
         end
     end
     return SeededElectorate(utilmatrix, seed)
+end
+
+"""
+    make_electorate(model::DCCModel, nvot::Int, ncand::Int, seed::Int)
+
+Create an electorate under a Dirichlet CrossCat model.
+
+See https://jmlr.org/papers/volume17/11-392/11-392.pdf for a description of CrossCat.
+
+Designed and originally written in Python by Jameson Quinn.
+"""
+function make_electorate(model::DCCModel, nvot::Int, ncand::Int, seed::Int)
+    rng = Random.Xoshiro(seed)
+    viewdims, dimweights = makeviews(model, rng)
+    nviews = length(viewdims)
+    views, clustercounts = assignclusters(model, nvot + ncand, nviews, rng)
+    clustermeans, clusterimportances = makeclusterprefs(model, nviews, viewdims, clustercounts, rng)
+    votersandcands, weights = makeprefpoints(model, views, viewdims, dimweights, clustermeans, clusterimportances, nviews, rng)
+    utilmatrix = positions_to_utils(model, votersandcands, weights, nvot, ncand)
+    return SeededElectorate(utilmatrix, seed)
+end
+
+"""
+    makeviews(model::DCCModel, rng)
+
+Create views for the CrossCat model and weight their relative importance.
+
+Also creates dimensions wthin each view and weights the imprtance of each dimension.
+Returns (viewdims, dimweights), where viewdims is a vector giving the number of dimensions
+with each view, and dimweights is a vector with the weights giving the importance of each
+dimension.
+"""
+function makeviews(model::DCCModel, rng)
+    viewdims = Int[] #number of dimensions in each view
+    dimweights = Float64[] #unnormalized raw importance of each dimension, regardless of view
+    view_weight = 1
+    while view_weight > model.viewcut
+        dimweight = view_weight
+        dimnum = 0
+        while dimweight > model.dimcut
+            append!(dimweights, dimweight)
+            dimnum += 1
+            dimweight *= rand(rng, model.dimdecaydist)
+        end
+        append!(viewdims, dimnum)
+        view_weight *= rand(rng, model.viewdecaydist)
+    end
+    return (viewdims, dimweights)
+end
+
+"""
+    assignclusters(model::DCCModel, npoints::Int, nviews::Int, rng)
+
+Use a Chinese Restaurant model to assign voters and candidates to clusters for each view.
+
+A point can represent a voter or a candidate.
+
+Returns (views, clustercounts).
+views is an (nviews by npoints) matrix in which views[view, point] gives the cluster index
+assigned to the point for a given view.
+clustercounts is a vector s.t. clustercounts[view] is the total number of clusters within
+the given view.
+"""
+function assignclusters(model::DCCModel, npoints::Int, nviews::Int, rng)
+    views = Matrix{Int}(undef, nviews, npoints)
+    clustercounts = zeros(Int, nviews)
+    for i in 1:npoints #voter and/or candidate index
+        for view in 1:nviews
+            r = (i - 1 + model.clusteralpha) * rand(rng)
+            if r > i - 1
+                clustercounts[view] += 1
+                views[view, i] = clustercounts[view]
+            else
+                views[view, i] = views[view, floor(Int, r) + 1]
+            end
+        end
+    end
+    return views, clustercounts
+end
+
+"""
+    makeclusterprefs(model::DCCModel, views::Matrix{Int}, viewdims::Vector{Int}, clustercounts::Int, rng)
+
+Create a mean preference for each cluster within each view in each of the view's dimensions in "policyspace"
+
+Returns (clustermeans, clusterimportances).
+clustermeans[dim_within_view, cluster, view] is the mean along dim_within_view of the cluster for the view.
+clusterimportances[cluster, view] is the importance of the given view to the cluster
+"""
+function makeclusterprefs(model::DCCModel, nviews::Int, viewdims::Vector{Int}, clustercounts::Vector{Int}, rng)
+    maxviewsize = maximum(viewdims)
+    clustermeans = Array{Float64, 3}(undef, maxviewsize, maximum(clustercounts), length(viewdims))
+    clusterimportances = zeros(Float64, maximum(clustercounts), length(viewdims))
+    for view in 1:nviews
+        for cluster in 1:clustercounts[view]
+            cares = rand(rng, model.caringdist) #How extreme the cluster's preferences are expected to be
+            for dim in 1:viewdims[view]
+                clustermeans[dim, cluster, view] = randn(rng)*sqrt(cares)
+            end
+            clusterimportances[cluster, view] = rand(rng, model.caringdist)
+        end
+    end
+    return clustermeans, clusterimportances
+end
+
+"""
+    makeprefpoints(model::DCCModel,
+                        views::Matrix{Int},
+                        viewdims::Vector{Int},
+                        clustermeans::Array{Float64},
+                        clusterimportances::Matrix{Float64},
+                        nviews::Int, rng)
+
+Create points in "policyspace" for all voters and candidates.
+
+Returns (points, weights).
+points: the position in policyspace of all voters and candidates
+weights[dimension, voter] is the weight assigned by voter to dimension
+"""
+function makeprefpoints(model::DCCModel,
+                        views::Matrix{Int},
+                        viewdims::Vector{Int},
+                        dimweights::Vector{Float64},
+                        clustermeans::Array{Float64},
+                        clusterimportances::Matrix{Float64},
+                        nviews::Int, rng)
+    npoints = size(views, 2)
+    totaldims = sum(viewdims)
+    points = Matrix{Float64}(undef, totaldims, npoints)
+    weights = Matrix{Float64}(undef, totaldims, npoints)
+    for p in 1:npoints
+        dim = 1
+        for view in 1:nviews
+            cluster = views[view, p]
+            endindex = dim + viewdims[view]-1
+            centerofmass = clustermeans[1:viewdims[view], cluster, view]
+            clusterweight = clusterimportances[cluster, view]
+            points[dim:endindex , p] = centerofmass + (
+                 randn(rng, viewdims[view]) .* sqrt(1 - clusterweight)
+            )
+            weights[dim:endindex , p] = dimweights[dim:endindex] .* clusterweight
+            dim += viewdims[view]
+        end
+    end
+    return points, weights
+end
+
+"""
+    positions_to_utils(model::DCCModel, votersandcands, weights, nvot, ncand)
+
+Convert the weights and voter/candidate positions in policyspace to a utility matrix.
+"""
+function positions_to_utils(model::DCCModel, votersandcands, weights, nvot, ncand)
+    ndims = size(votersandcands, 1)
+    weight_totals = [sum((weights[dim, voter])^2
+                    for dim in 1:ndims) for voter in 1:nvot]
+    utilmatrix = Matrix{Float64}(undef, ncand, nvot)
+    voterpositions = view(votersandcands, :, 1:nvot)
+    candpositions = view(votersandcands, :, nvot+1:nvot+ncand)
+    for voter in 1:nvot
+        for cand in 1:ncand
+            utilmatrix[cand, voter] = -sqrt(sum(
+                ((voterpositions[d, voter] - candpositions[d, cand])*weights[d, voter])^2
+                for d in 1:ndims) / weight_totals[voter])
+        end
+    end
+    return utilmatrix
 end
