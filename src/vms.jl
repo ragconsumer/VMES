@@ -93,25 +93,34 @@ function tabulate(ballots::AbstractArray{T,2}, method::Top2Method) where T
     return [r1results tallies]
 end
 
+"""
+    getwinners(ballots::AbstractArray, method::VotingMethod, nwinners=1)
+
+Determine the winners for the given ballots and voting method.
+"""
+function getwinners(ballots::AbstractArray, method::VotingMethod, nwinners=1)
+    winnersfromtab(tabulate(ballots, method, nwinners), method, nwinners)
+end
+
 """    
-    getwinners(tabulation::AbstractArray, ::VotingMethod)
+    winnersfromtab(tabulation::AbstractArray, ::VotingMethod)
 
 Determine the winner and put it in a vector of length 1.
 
 Resolves ties to always favor the candidates with the lowest indicies.
 """
-function getwinners(tabulation::AbstractArray, ::VotingMethod)
+function winnersfromtab(tabulation::AbstractArray, ::VotingMethod)
     return [argmax(tabulation[:,end])]
 end
 
 """
-    getwinners(tabulation::AbstractArray, method::VotingMethod, nwinners::Integer)
+    winnersfromtab(tabulation::AbstractArray, method::VotingMethod, nwinners::Integer)
 
 Determine nwinners winning candidates.
 """
-function getwinners(tabulation::AbstractArray, method::VotingMethod, nwinners::Integer)
+function winnersfromtab(tabulation::AbstractArray, method::VotingMethod, nwinners::Integer)
     if nwinners == 1
-        return winners(tabulation, method)
+        return winnersfromtab(tabulation, method)
     else
         throw(ArgumentError("multiwinner results NYI"))
     end

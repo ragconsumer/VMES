@@ -103,7 +103,7 @@ import Statistics, Distributions, Random
     upsetcount = 0
     for _ in 1:niter
         elec = make_electorate(RepDrawModel(base_elec), 3, 2)
-        if getwinners(VMES.hontabulate(elec, plurality), plurality) == [2]
+        if winnersfromtab(VMES.hontabulate(elec, plurality), plurality) == [2]
             upsetcount += 1
         end
     end
@@ -177,7 +177,7 @@ end
     @test VMES.hontabulate(VMES.centersqueeze1, borda)==[10; 13; 10;;]
     @test VMES.hontabulate(VMES.centersqueeze1, pluralitytop2)==[5; 2; 4;; 5; 0; 6]
     @test VMES.hontabulate(VMES.centersqueeze2, pluralitytop2)==[6; 3; 3;; 6; 6; 0]
-    @test getwinners(VMES.hontabulate(VMES.centersqueeze2, pluralitytop2),
+    @test winnersfromtab(VMES.hontabulate(VMES.centersqueeze2, pluralitytop2),
                     pluralitytop2) == [1]
 
     @test VMES.top2([1,2,3,4,5])==[5, 4]
@@ -266,4 +266,11 @@ end
     @test counts[[1;0;;]] + counts[[0;1;;]] + counts[[0.5;0.5;;]]== 100
     @test 30 < counts[[0.5;0.5;;]] < 70
     
+end
+
+@testset "Metrics" begin
+    methods = [plurality, irv, minimax]
+    strats = [ElectorateStrategy(hon, 11) for _ in 1:3]
+    vses = calc_vses(10, VMES.TestModel(VMES.centersqueeze1), methods, strats, 11, 3)
+    @test vses ≈ [(10.5 - 32.5/3)/(13-32.5/3), (9 - 32.5/3)/(13-32.5/3), 1]
 end

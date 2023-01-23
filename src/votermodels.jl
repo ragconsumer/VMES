@@ -25,6 +25,13 @@ struct DCCModel <: SpatialModel
 end
 
 """
+Always yields the same electorate; only useful for testing.
+"""
+struct TestModel <: VoterModel
+    electorate
+end
+
+"""
 Use the defaults from the Python VSE code.
 """
 dcc = DCCModel(Distributions.Uniform(), 0.2,
@@ -273,3 +280,5 @@ function positions_to_utils(model::DCCModel, votersandcands, weights, nvot, ncan
     end
     return utilmatrix
 end
+
+make_electorate(model::TestModel, ::Int, ::Int, ::Int) = model.electorate
