@@ -187,7 +187,24 @@ end
     @test tabulate(VMES.startestballots, score) == [50; 43; 43;;]
     @test tabulate(VMES.startestballots, star) == [50; 43; 43;; 10; 11; 0]
 
+    @test VMES.pairwisematrix(VMES.centersqueeze1) == [0 5 5
+                                                           6 0 7
+                                                           6 4 0]
+    @test VMES.hontabulate(VMES.centersqueeze1, minimax)==[0 5 5 -1
+                                                            6 0 7 1
+                                                            6 4 0 -3]
+    @test VMES.hontabulate(VMES.centersqueeze1, rankedrobin)==[0 5 5 0
+                                                               6 0 7 2
+                                                               6 4 0 1]
+    @test VMES.hontabulate(VMES.cycle1, rankedrobin)==[0 5 9 1 -2
+                                                       10 0 4 1 -2
+                                                       6 11 0 1 4]
+    @test VMES.hontabulate(VMES.cycle2, rankedrobin)==[0 0 0 4 0 -999
+                                                       15 0 5 9 2 -2
+                                                       15 10 0 4 2 -2
+                                                       11 6 11 0 2 4]
     @testset "RCV" begin
+        
         @test VMES.hontabulate(VMES.centersqueeze1, irv)==[5; 2; 4;; 5; 0; 6]
         @test VMES.hontabulate(VMES.centersqueeze2, irv)==[6; 3; 3;; 6; 6; 0]
         @test VMES.hontabulate(VMES.fivecand2party, rcv, 1)==[  8.0  12.0  12.0  12.0
