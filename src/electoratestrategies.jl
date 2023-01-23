@@ -39,7 +39,7 @@ ElectorateStrategy(strategy::VoterStrategy, nvot::Int) = ElectorateStrategy(nvot
 
 Everyone votes in accordance with estrat.
 """
-function castballots(electorate::Matrix, estrat::ElectorateStrategy, method::VotingMethod, infodict=nothing)
+function castballots(electorate::AbstractMatrix, estrat::ElectorateStrategy, method::VotingMethod, infodict=nothing)
     nvot = size(electorate, 2)
     stratindex = 1
     votersleft = estrat.stratusers[1]
@@ -67,7 +67,7 @@ end
 
 The entire electorate casts ballots using strat.
 """
-function castballots(electorate::Matrix, strat::VoterStrategy, method::VotingMethod, polldict=nothing)
+function castballots(electorate::AbstractMatrix, strat::VoterStrategy, method::VotingMethod, polldict=nothing)
     estrat = ElectorateStrategy(0, [strat], [size(electorate, 2)])
     castballots(electorate, estrat, method, polldict)
 end
@@ -77,7 +77,7 @@ end
 
 Tabulate the election that happens when everyone votes honestly.
 """
-function hontabulate(electorate::Matrix, method::VotingMethod, nwinners=1)
+function hontabulate(electorate::AbstractMatrix, method::VotingMethod, nwinners=1)
     ballots = castballots(electorate, hon, method, nwinners)
     tabulate(ballots, method, nwinners)
 end

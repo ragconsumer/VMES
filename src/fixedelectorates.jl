@@ -20,7 +20,12 @@ fivecand2partymessier = [repeat([5.1,4.2,0,-3.5,-6], outer=(1,6));;
 reversespoiler = [repeat([10,9,0], outer=(1,12));;
                 repeat([9,10,7], outer=(1,6));;
                 repeat([0,1,5], outer=(1,2))]
-
+cycle1 = [repeat([0,1,2], outer=(1, 6));;
+        repeat([2,0,1], outer=(1, 5));;
+        repeat([1,2,0], outer=(1, 4));;]
+cycle2 = [repeat([-1, 0,1,2], outer=(1, 6));;
+        repeat([-1, 2,0,1], outer=(1, 5));;
+        repeat([0, 1,2,-1], outer=(1, 4));;]
 manybulletranked = [repeat([4,3,0,0,0], outer=(1,5));;
                     repeat([0,0,4,0,0], outer=(1,6));;
                     repeat([0,4,2,3,0], outer=(1,4));;

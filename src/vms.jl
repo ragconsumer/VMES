@@ -192,3 +192,45 @@ function tabulate(ballots, ::STARVoting)
     return [r1results runoffresults]
 end
 
+"""
+    pairwisematrix(ballots_or_utils)
+
+Computer the Condorcet pairwise matrix.
+
+pairwisematrix(ballots)[i, j] is the number of voters prefering i to j.
+"""
+function pairwisematrix(ballots_or_utils)
+    ncands = size(ballots_or_utils, 1)
+    mat = Matrix{Int}(undef, ncands, ncands)
+    for topcand in 1:ncands
+        for leftcand in 1:ncands
+            mat[leftcand, topcand] = count(>(0), ballots_or_utils[leftcand, :]-ballots_or_utils[topcand, :])
+        end
+    end
+    return mat
+end
+
+function tabulate(ballots, ::Minimax)
+    ncands = size(ballots, 1)
+    compmat = pairwisematrix(ballots)
+    minmargins = [minimum(
+        compmat[lcand, tcand] - compmat[tcand, lcand]
+        for tcand in 1:ncands if tcand != lcand)
+        for lcand in 1:ncands]
+    return [compmat minmargins]
+end
+
+function tabulate(ballots, ::RankedRobin)
+    n = size(ballots, 1)
+    compmat = pairwisematrix(ballots)
+    wincounts = [count(>(0), compmat[lcand, tcand] - compmat[tcand, lcand] for tcand in 1:n) for lcand in 1:n]
+    mostwins = maximum(wincounts)
+    finalists = [c for c in 1:n if wincounts[c] == mostwins]
+    if length(finalists) == 1
+        return [compmat wincounts]
+    end
+    finalmargins = [(lcand ∈ finalists ?
+                    sum(compmat[lcand, tcand] - compmat[tcand, lcand] for tcand in finalists) : -999)
+                    for lcand in 1:n]
+    return [compmat wincounts finalmargins]
+end

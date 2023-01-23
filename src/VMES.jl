@@ -7,7 +7,7 @@ export hon, bullet, abstain, TopBottomThreshold, TopMeanThreshold, StdThreshold
 export ExpScale, topbotem, topmeanem, scorebystd
 export PluralityVA, ApprovalVA
 export ElectorateStrategy, castballots
-export ic, ImpartialCulture, DimModel
+export make_electorate, ic, ImpartialCulture, DimModel, DCCModel, dcc, RepDrawModel
 
 
 import Statistics, Random
