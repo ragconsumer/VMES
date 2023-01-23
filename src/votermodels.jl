@@ -2,6 +2,10 @@ abstract type VoterModel end
 abstract type SpatialModel <: VoterModel end
 abstract type SampleModel <: VoterModel end
 
+struct RepDrawModel <: SampleModel
+    base_electorate
+end
+
 struct ImpartialCulture <: VoterModel
     distribution
 end
@@ -53,6 +57,23 @@ Create an electorate according to the voter model. Creates a random seed.
 function make_electorate(model::VoterModel, nvot::Int, ncand::Int)
     seed = abs(rand(Int))
     make_electorate(model, nvot, ncand, seed)
+end
+
+"""
+    make_electorate(model::RepDrawModel, nvot::Int, ::Int, seed::Int)
+
+Create an electorate in which voters are drawn with replacement from the basemodel.
+
+Candidates are the same.
+"""
+function make_electorate(model::RepDrawModel, nvot::Int, ::Int, seed::Int)
+    rng = Random.Xoshiro(seed)
+    elec = Matrix{Float64}(undef, size(model.base_electorate, 1), nvot)
+    voterpoolsize = size(model.base_electorate, 2)
+    for i in 1:nvot
+        elec[:, i] = model.base_electorate[:, rand(rng, 1:voterpoolsize)]
+    end
+    return SeededElectorate(elec, seed)
 end
 
 """

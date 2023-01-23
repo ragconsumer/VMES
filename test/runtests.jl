@@ -97,6 +97,19 @@ import Statistics, Distributions, Random
         @test make_electorate(dcc, 50, 10, seed) == elec
         @test make_electorate(dcc, 50, 10) != elec
     end
+
+    base_elec = [1.;0;;1.5;.8;;-1.1;0]
+    niter = 10000
+    upsetcount = 0
+    for _ in 1:niter
+        elec = make_electorate(RepDrawModel(base_elec), 3, 2)
+        if getwinners(VMES.hontabulate(elec, plurality), plurality) == [2]
+            upsetcount += 1
+        end
+    end
+    elec = make_electorate(RepDrawModel(base_elec), 3, 2)
+    @test size(elec) == (2, 3)
+    @test 0.7*2/9 < upsetcount/niter < 1.3*2/9
 end
 
 @testset "Basic Strategies" begin
