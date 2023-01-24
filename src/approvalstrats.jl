@@ -1,6 +1,6 @@
 
 
-vote(voter, ::HonestVote, method::ApprovalMethod) = vote(voter, TopMeanthreshold(0.4), method)
+vote(voter, ::HonestVote, method::ApprovalMethod) = vote(voter, TopMeanThreshold(0.4), method)
 
 """
 threshold should be in (0, 1].

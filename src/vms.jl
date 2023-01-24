@@ -77,12 +77,12 @@ end
 
 Tabulate a top two voting method. The results of the runoff will appear in the rightmost column.
 """
-function tabulate(ballots::AbstractArray{T,2}, method::Top2Method) where T
+function tabulate(ballots::AbstractMatrix, method::Top2Method)
     ncands = div(size(ballots, 1), 2)
     r1results = tabulate(view(ballots, 1:ncands, :), method.basemethod)
     relevantresults = view(r1results, :, size(r1results, 2))
     finalists = sort(top2(relevantresults))
-    tallies = zeros(T, ncands)
+    tallies = zeros(Int, ncands)
     for ranking in eachslice(view(ballots, ncands+1:2ncands, :),dims=2)
         if ranking[finalists[1]] > ranking[finalists[2]]
             tallies[finalists[1]] += 1
@@ -92,6 +92,16 @@ function tabulate(ballots::AbstractArray{T,2}, method::Top2Method) where T
     end
     return [r1results tallies]
 end
+
+"""
+    getballotsize(::OneRoundMethod, ncand)
+
+Return the length of an array that represents a ballot.
+"""
+getballotsize(::OneRoundMethod, ncand) = ncand
+getballotsize(::Top2Method, ncand) = 2ncand
+
+ballotmarktype(::VotingMethod) = Int
 
 """
     getwinners(ballots::AbstractArray, method::VotingMethod, nwinners=1)

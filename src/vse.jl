@@ -1,3 +1,14 @@
+"""
+    calc_vses(niter::Int,
+                   vmodel::VoterModel,
+                   methods::Vector{<: VotingMethod},
+                   estrats::Vector{ElectorateStrategy},
+                   nvot::Int, ncand::Int, pollingerror=0.1, nwinners=1)
+
+Determine the VSEs of the given voting methods and strategies.
+
+methods and estrats must be vectors of the same length.
+"""
 function calc_vses(niter::Int,
                    vmodel::VoterModel,
                    methods::Vector{<: VotingMethod},
@@ -13,9 +24,19 @@ function calc_vses(niter::Int,
     bestsum, avgsum = sum(bestutils), sum(avgutils)
     winnersums = reshape(sum(winnerutils, dims=2), length(methods))
     vses = [(w-avgsum)/(bestsum-avgsum) for w in winnersums]
+    #oldvses = [Statistics.mean((winnerutils[m, i]-avgutils[i])/(bestutils[i]-avgutils[i])
+                            #for i in 1:niter) for m in 1:length(methods)]
     return vses
 end
 
+"""
+    one_vse_iter(vmodel::VoterModel,
+                      methods::Vector{<: VotingMethod},
+                      estrats::Vector{ElectorateStrategy},
+                      nvot::Int, ncand::Int, pollingerror=0.1, nwinners=1)
+
+Create a single electorate and determine the utilities needed for calculating VSE
+"""
 function one_vse_iter(vmodel::VoterModel,
                       methods::Vector{<: VotingMethod},
                       estrats::Vector{ElectorateStrategy},

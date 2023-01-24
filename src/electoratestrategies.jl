@@ -53,13 +53,13 @@ function castballots(electorate::AbstractMatrix, estrat::ElectorateStrategy, met
         votersleft -= 1
     end
 
-    ballots = Array{Any}(undef, nvot)
+    ballots = Array{ballotmarktype(method)}(undef, getballotsize(method, size(electorate, 1)), nvot)
     for (i, voter) in enumerate(eachslice(electorate,dims=2))
         strat = estrat.stratlist[stratvector[i]]
         info_for_strat = isnothing(info_used(strat, method)) ? nothing : infodict[info_used(strat, method)]
-        ballots[i] = vote(voter, strat, method, info_for_strat)
+        ballots[:, i] = vote(voter, strat, method, info_for_strat)
     end
-    return cat(ballots...; dims=2)
+    return ballots
 end
 
 """

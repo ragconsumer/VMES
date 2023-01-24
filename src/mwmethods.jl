@@ -52,7 +52,7 @@ function tabulate(ballots, method::RCV, nwinners::Int)
     while nelected < nwinners && nelected + length(candsleft) > nwinners
         #stop if you've elected enough candidates or if only nwinners candidates remain un-eliminated.
         rcv_resort!(piles, ballots, tosort, candsleft)
-        resultline = [c in candsleft ? sum(weights[i] for i in piles[c]) : c in candselected ? float(quota) : 0.0 for c in 1:ncands]
+        resultline = [c in candsleft ? sum([weights[i] for i in piles[c]], init=0) : c in candselected ? float(quota) : 0.0 for c in 1:ncands]
         results = hcat(results, resultline)
         new_winners = [c for c in 1:ncands if resultline[c] >= quota && !(c in candselected)]
         nelected += length(new_winners)
