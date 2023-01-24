@@ -23,6 +23,12 @@ struct ExpScale <: BlindStrategy
     basescale::ArbitraryScoreScale
 end
 
+struct STARVA <: InformedStrategy
+    neededinfo
+    pollinguncertainty::Float64
+    scoreimportance::Float64
+end
+
 function mean_plus_std(itr)
     mean = Statistics.mean(itr)
     std = Statistics.stdm(itr, mean, corrected=false)
@@ -87,3 +93,59 @@ function vote(voter, strat::ExpScale, method::ScoringMethod)
 end
 
 vote(voter, ::HonestVote, method::ScoringMethod) = vote(voter, topmeanem, method)
+
+"""
+    starvacoeffs(v::Vector, ::STARVA, p::Vector)
+
+Calculate coefficients for the STAR VA strategy.
+
+v is the voter and p is the vector of estimated win probabilities.
+Returns (scoeffs, rcoeffs)
+s[i] is how good it is for candidate i to have a high score.
+r[j, i] is how good it is for candidate i t have a higher score than candidate j
+for the automatic runoff.
+"""
+function starvacoeffs(v::Vector, ::VoterStrategy, p::Vector)
+    ncand= length(v)
+    scoeffs = Vector{Float64}(undef, ncand)
+    rcoeffs = Matrix{Float64}(undef, ncand, ncand)
+    for i in 1:ncand
+        #approximates the probability that i and j will tie for the second runoff slot and win in the runoff
+        scoeffs[i] = sum((v[i]-v[j])*p[i]*p[j]*(1-p[i]-p[j]) for j in 1:ncand)
+        #approximates the probability that i and j will tie in the runoff.
+        rcoeffs[:, i] = [(v[i]-v[j])*p[i]*p[j] for j in 1:ncand]
+    end
+    return scoeffs, rcoeffs
+end
+
+"""
+    vote(voter, strat::STARVA, method::ScoringMethod, winprobs::Vector)
+
+Balance the incentives to exaggerate and to score candidates differently, accounting for viability.
+"""
+function vote(voter, strat::STARVA, method::ScoringMethod, winprobs::Vector)
+    ncand = length(voter)
+    ballot = vote(voter, hon, method)
+    scoeffs, rcoeffs = starvacoeffs(voter, strat, winprobs)
+    improved = true
+    while improved
+        improved = false
+        for cand in 1:ncand
+            if ballot[cand] < method.maxscore
+                rankeffect = sum(rcoeffs[i, cand] for i in 1:ncand if 0 <= ballot[i]-ballot[cand] <= 1)
+                if rankeffect + strat.scoreimportance*scoeffs[cand] > 0
+                    ballot[cand] += 1
+                    improved = true
+                end
+            end
+            if ballot[cand] > 0
+                rankeffect = sum(rcoeffs[i, cand] for i in 1:ncand if -1 <= ballot[i]-ballot[cand] <= 0)
+                if rankeffect + strat.scoreimportance*scoeffs[cand] < 0
+                    ballot[cand] -= 1
+                    improved = true
+                end
+            end
+        end
+    end
+    return ballot
+end

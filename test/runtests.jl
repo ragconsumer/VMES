@@ -154,6 +154,17 @@ end
     @test vote([0,1,5], PluralityVA(nothing, 0.1), plurality, [.05,.9,.05]) == [0,0,1]
     @test vote([0,1,5], ApprovalVA(nothing, 0.1), approval, [.49,.49,.02]) == [0,1,1]
     @test vote([0,1,5], ApprovalVA(nothing, 0.1), approval, [.05,.9,.05]) == [0,0,1]
+    @test vote([3,2,1,0], BordaVA(nothing, 0.1), borda, [.05, .4, .4, .05]) == [2, 3, 0, 1]
+    @test vote([3,2,1,0], IRVVA(nothing, 0.1), irv, [.05, .4, .4, .05]) == [2, 3, 1, 0]
+    sc, rc = VMES.starvacoeffs([0,1,3], hon, [.5,.4,.1])
+    @test isapprox(sc, [-.08, -0.02, 0.1], atol=1e-10)
+    @test isapprox(rc, [0 0.2 0.15
+                        -.2 0 0.08
+                        -.15 -.08 0], atol=1e-10)
+    @test vote([2.1,2,1,0], STARVA(nothing, 0.1, .2), star, [.98, .01, .01, .0001]) == [5, 4, 0, 0]
+    @test vote([4,2,1,0], STARVA(nothing, 0.1, .2), star, [.98, .01, .01, .0001]) == [5, 1, 0, 0]
+    @test vote([3,2,1,0], STARVA(nothing, 0.1, .2), star, [.01, .49, .49, .01]) == [5, 4, 1, 0]
+    
 end
 
 @testset "Electorate Strategies" begin
@@ -232,7 +243,11 @@ end
                                                         6.0   6.0   6.0   10.75
                                                         20.0  11.0  11.0   11.0
                                                         3.0  12.0  11.0   11.0]
-        VMES.hontabulate(VMES.reversespoiler, rcv) == [12; 6; 2;;]
+        @test VMES.hontabulate(VMES.reversespoiler, rcv) == [12; 6; 2;;]
+        @test VMES.hontabulate(VMES.cycle2, rcv)==[0 0 0
+                                                   5 5 9
+                                                   4 4 0
+                                                   6 6 6]
     end
 end
 

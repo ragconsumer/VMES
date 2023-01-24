@@ -65,7 +65,7 @@ end
 
 Vote for every candidate whose election is at least as good as the expected outcome.
 """
-function vote(voter, _::ApprovalVA, method::CardinalMethod, winprobs)
+function vote(voter, ::ApprovalVA, method::CardinalMethod, winprobs)
     expectedvalue = sum(voter[i]*winprobs[i] for i in eachindex(voter, winprobs))
     [util >=expectedvalue ? topballotmark(voter, method) : 0 for util in voter]
 end
@@ -80,7 +80,7 @@ end
 
 Vote for the candidate whose probability of winning times utility above expectation is the greatest.
 """
-function vote(voter, _::PluralityVA, method::VotingMethod, winprobs)
+function vote(voter, ::PluralityVA, method::VotingMethod, winprobs)
     expectedvalue = sum(voter[i]*winprobs[i] for i in eachindex(voter, winprobs))
     ballot = zeros(Int, length(voter))
     ballot[argmax((voter[i]-expectedvalue)*winprobs[i] for i in eachindex(voter, winprobs))] = topballotmark(voter, method)
