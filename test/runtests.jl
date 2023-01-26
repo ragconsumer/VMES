@@ -249,6 +249,80 @@ end
                                                    4 4 0
                                                    6 6 6]
     end
+    @testset "Score PR" begin
+        @test VMES.weightedscorecount([5;4;0;;0;2;5], [1,0.5], sss) == [5, 5, 2.5]
+        @test VMES.weightedstarrunoff([5, 10, 5], [5;0;0;;4;5;0;;0;0;5], [1, .5, 75]) == [1, .5, 0]
+        weights = [1,0.9,1,1, 0.25]
+        VMES.sssreweight!(weights, sss, [5;;5;;3;;3;;0], 1, 2, Set())
+        @test weights ≈ [1-2/3.1,0.9*(1-2/3.1),1-6/15.5,1-6/15.5, 0.25]
+        weights = [0.5,0.4,1,1, 0.25]
+        VMES.sssreweight!(weights, sss, [5;;5;;3;;2;;0], 1, 2, Set())
+        @test weights ≈ [0,0,0.4,0.6,0.25]
+        weights = [1,1,1,1, 0.25]
+        VMES.asreweight!(weights, allocatedscore, [5;;5;;3;;3;;0], 1, 2, Set())
+        @test weights ≈ [0,0,1,1, 0.25]
+        weights = [1,.8,1,1, 0.25]
+        VMES.asreweight!(weights, allocatedscore, [5;;5;;3;;3;;0], 1, 2, Set())
+        @test weights ≈ [0,0,.9,.9, 0.25]
+        weights = [1,.5,1,1, 0.25]
+        VMES.asreweight!(weights, allocatedscore, [5;;5;;4;;3;;0], 1, 2, Set())
+        @test weights ≈ [0,0.5,0,1, 0.25]
+        weights = [0.5,.5,1,0.25, 0.25]
+        VMES.asreweight!(weights, allocatedscore, [5;;0;;4;;3;;0], 1, 2, Set())
+        @test weights ≈ [0,0.5,0,0, 0.25]
+        weights = [0.5,.5,1,1, 0.25]
+        VMES.asreweight!(weights, allocatedscore, [4;;4;;2;;2;;0], 1, 2, Set())
+        @test weights ≈ [1/6,1/6,1/3,1/3, 0.25]
+        weights = [1,1,1,1, 0.25]
+        VMES.asreweight!(weights, asu, [5;;5;;3;;3;;0], 1, 2, Set())
+        @test weights ≈ [0,0,1,1, 0.25]
+        weights = [1,.5,1,1, 0.25]
+        VMES.asreweight!(weights, asu, [5;;5;;4;;3;;0], 1, 2, Set())
+        @test weights ≈ [0,0,0.5,1, 0.25]
+        weights = [1,1,1,1, 0.25]
+        VMES.asreweight!(weights, s5h, [5;;5;;3;;3;;0], 1, 2, Set())
+        @test weights ≈ [0,0,1,1, 0.25]
+        weights = [0.5,.5,1,0.25, 0.25]
+        VMES.asreweight!(weights, s5h, [5;;5;;4;;3;;0], 1, 2, Set())
+        @test weights ≈ [0,0,0.2,0.1, 0.25]
+        weights = [1,.5,1,0.5, 0.25]
+        VMES.asreweight!(weights, s5h, [5;;0;;4;;3;;0], 1, 2, Set())
+        @test weights ≈ [0,0.5,0.2,0.3, 0.25]
+
+        ec = Set([1,4])
+        @test VMES.addwinner!(ec, [9,1,5,5,5]) == (3, 5)
+        ec == Set([1,3,4])
+
+        @test VMES.tabulate(VMES.startestballots, allocatedscore, 2) == [50; 43; 43;; 50; 43; 43]
+        @test VMES.tabulate(VMES.scoretest1, allocatedscore, 2) ≈ [70 70 
+                                                                   55 31
+                                                                   25 25
+                                                                   50 20]
+        @test VMES.tabulate(VMES.scoretest1, allocatedscore, 3) ≈ [70 70 70 
+                                                                   55 39 39
+                                                                   25 25 5
+                                                                   50 30 30]
+        @test VMES.tabulate(VMES.scoretest1, asu, 3) ≈ [70 70 70 
+                                                        55 39 39
+                                                        25 25 25
+                                                        50 30 10]
+        @test VMES.tabulate(VMES.scoretest1, sss, 2) ≈ [70 70 
+                                                        55 4*(10-30/7)+3*(5-12/7)
+                                                        25 5*(5-12/7)
+                                                        50 5*(10-30/7)]
+        @test VMES.tabulate(VMES.scoretest1, s5h, 3) ≈ [70 70 70 
+                                                        55 39 39
+                                                        25 25 25
+                                                        50 30 10]
+        @test VMES.tabulate(VMES.scoretest1, s5hr, 3) ≈[70 15 70 70 70 70
+                                                        55 0 39 5 23 2
+                                                        25 0 25 0 25 5
+                                                        50 0 30 6 30 30]
+        @test VMES.tabulate(VMES.scoretest1, s5hfr, 3) ≈ [70 70 70 70
+                                                          55 39 39 39
+                                                          25 25 25 5
+                                                          50 30 10 2]
+    end
 end
 
 @testset "Polls" begin

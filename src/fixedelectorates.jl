@@ -39,3 +39,5 @@ startestballots = [repeat([5,0,0], outer=(1,10));;
                     repeat([0,5,1], outer=(1,3));;
                     repeat([0,0,5], outer=(1,5));;
                     repeat([0,5,0], outer=(1,5))]
+
+scoretest1 = [repeat([5,4,0,5], outer=(1,10)) repeat([4,3,5,0], outer=(1,5))]
