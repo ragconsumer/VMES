@@ -24,7 +24,7 @@ Create an ElectorateStrategy that has nstrategists using strategy (and being ope
 nhons voters voting honestly, and nbullets voters bullet voting no matter what.
 """
 function ElectorateStrategy(strategy::VoterStrategy, nstrategists::Int, nhons::Int, nbullets::Int)
-    return ElecorateStrategy(nstrategists, [strategy, hon, bullet], [nstrategists, nhons, nbullets])
+    return ElectorateStrategy(nstrategists, [strategy, hon, bullet], [nstrategists, nhons, nbullets])
 end
 
 """

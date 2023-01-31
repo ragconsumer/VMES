@@ -1,5 +1,7 @@
 
 """
+ArbitraryScoreScale: a highly customizable blind strategy for scoring ballots.
+
 highfunc: A function that receives the voter as input and returns the high point of the initial scale
 lowfunc: A function that receives the voter as input and returns the low point of the initial scale
 highfraction: The high end of the actual scale that will be used compared to the inital points/

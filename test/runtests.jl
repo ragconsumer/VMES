@@ -184,6 +184,8 @@ end
 end
 
 @testset "VM Tabulation" begin
+    @test winnersfromtab([50; 43; 60;; 50; 43; 43], allocatedscore, 2) == [1, 2]
+    @test winnersfromtab([50; 43; 60;; 50; 43; 53], allocatedscore, 2) == [3, 1]
     @test VMES.hontabulate(VMES.centersqueeze1, plurality)==[5; 2; 4;;]
     @test VMES.hontabulate(VMES.centersqueeze1, borda)==[10; 13; 10;;]
     @test VMES.hontabulate(VMES.centersqueeze1, pluralitytop2)==[5; 2; 4;; 5; 0; 6]
@@ -336,20 +338,20 @@ end
 
     e = [1;0;;0;1]
     spec = VMES.BasicPollSpec(plurality, ElectorateStrategy(hon, 2))
-    @test VMES.administerpolls(e, [ElectorateStrategy(hon, 2)], [plurality], 0, 0, 1) == Dict()
+    @test VMES.administerpolls(e, ([ElectorateStrategy(hon, 2)], [plurality]), 0, 0, 1) == Dict(nothing=>nothing)
 
     estrat = ElectorateStrategy(hon, 2)
     vaestrat = ElectorateStrategy(PluralityVA(VMES.WinProbSpec(spec, 0.1), 0.1), 2)
     counts = Dict{Array, Int}()
     for _ in 1:100
-        polldict = VMES.administerpolls(e, [vaestrat], [plurality], 0, 0, 1)
+        polldict = VMES.administerpolls(e, ([vaestrat], [plurality]), 0, 0, 1)
         counts[polldict[spec]] = get(counts, polldict[spec], 0) + 1
     end
     @test counts[[1;0;;]] + counts[[0;1;;]] == 100
     @test 20 < counts[[1;0;;]] < 80
     counts = Dict{}()
     for _ in 1:100
-        polldict = VMES.administerpolls(e, [vaestrat], [plurality], 0, 0, 2)
+        polldict = VMES.administerpolls(e, ([vaestrat], [plurality]), 0, 0, 2)
         counts[polldict[spec]] = get(counts, polldict[spec], 0) + 1
     end
     @test counts[[1;0;;]] + counts[[0;1;;]] + counts[[0.5;0.5;;]]== 100
@@ -362,4 +364,51 @@ end
     strats = [ElectorateStrategy(hon, 11) for _ in 1:3]
     vses = calc_vses(10, VMES.TestModel(VMES.centersqueeze1), methods, strats, 11, 3)
     @test vses ≈ [(10.5 - 32.5/3)/(13-32.5/3), (9 - 32.5/3)/(13-32.5/3), 1]
+
+    @testset "esif" begin
+        strats = [hon, abstain, bullet, ExpScale(3), ExpScale(3.1)]
+        possballots, ballotlookup = VMES.stratballotdict(
+            [0,1,2,3,4,5], strats, star, [0,1,2,3,4,5], Dict(nothing=>nothing))
+        @test possballots == [0 0 0 0
+                              1 0 0 0
+                              2 0 0 0
+                              3 0 0 1
+                              4 0 0 3
+                              5 0 5 5]
+        @test ballotlookup == Dict{Int, Int}(1=>1, 2=>2, 3=>3, 4=>4, 5=>4)
+        strats = [abstain, bullet, ExpScale(3), ExpScale(3.1)]
+        possballots, ballotlookup = VMES.stratballotdict(
+            [0,1,2,3,4,5], strats, star, [0,1,2,3,4,5], Dict(nothing=>nothing))
+        @test possballots == [0 0 0 0
+                              1 0 0 0
+                              2 0 0 0
+                              3 0 0 1
+                              4 0 0 3
+                              5 0 5 5]
+        @test ballotlookup == Dict{Int, Int}(1=>2, 2=>3, 3=>4, 4=>4)
+
+        possibleballots = [5;0;0;;0;5;0;;0;0;5;;0;1;5]
+        bgballots = [3;2;1;;5;0;0;;1;5;1;;0;1;5;;3;2;1]
+        d = VMES.ballotresultmap(possibleballots, bgballots, [score, star], [[1],[2]], [1,2,3], 1, 1)
+        @test d == [0.0 1.0 2.0 2.0;;; 0.0 0.0 -1.0 -1.0]
+
+        methodsandstrats = [([star, score], [hon, bullet], [hon, bullet, ExpScale(2)]),
+                            ([rcv],[hon], [bullet, abstain])]
+        stratinputs, methodinputs = VMES.getadminpollsinput(methodsandstrats)
+        @test stratinputs == [hon, bullet, hon, bullet, ExpScale(2), hon, bullet, abstain]
+        @test methodinputs == [repeat([star], 5); repeat([rcv], 3)]
+
+        #test one_esif_iter
+        methodsandstrats = [([score, star], [ElectorateStrategy(hon,3), ElectorateStrategy(ExpScale(3),3)], [hon, bullet]),
+                            ([rcv], [ElectorateStrategy(bullet,3)], [abstain, bullet, hon])]
+        electorate = [0;1;2;-10;;2;0;1;-10;;1;2;0;-10] #symmetric reverse spoiler scenario (also a Condorcet cycle)
+        utiltotals = VMES.one_esif_iter(VMES.TestModel(electorate), methodsandstrats, 3, 4, 0, 0, 1)
+        @test utiltotals == [0. 3 0 1 -3 3 0 -3 -2 0 1]
+
+        esifs = calc_esif(10, VMES.TestModel(electorate), methodsandstrats, 3, 4, 0, 0, 1)[4]
+        @test esifs == [1, 2, 1, 4/3, 0, 2, 1, -0.5, 0, 1, 1.5]
+
+        totals = [-3 0. 3 -3 0 1 -3 -3 3 -2 0 -3 -2 -2 0 1]
+        @test VMES.totals_to_esif(totals, methodsandstrats)[4] == [1, 2, 1, 4/3, 0, 2, 1, -0.5, 0, 1, 1.5]
+    end
 end

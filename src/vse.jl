@@ -42,7 +42,7 @@ function one_vse_iter(vmodel::VoterModel,
                       estrats::Vector{ElectorateStrategy},
                       nvot::Int, ncand::Int, pollingerror=0.1, nwinners=1)
     electorate = make_electorate(vmodel, nvot, ncand)
-    infodict = administerpolls(electorate, estrats, methods, pollingerror, 0)
+    infodict = administerpolls(electorate, (estrats, methods), pollingerror, 0)
     ballots = castballots.((electorate,), estrats, methods, (infodict,))
     winnersets = getwinners.(ballots, methods, nwinners)
     socialutils = sum(electorate, dims=2)

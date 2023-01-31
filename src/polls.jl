@@ -21,14 +21,15 @@ end
 
 
 """
-    administerpolls(electorate, estrats::Vector{ElectorateStrategy}, methods::Vector{VotingMethod},
+    administerpolls(electorate, (strats, methods),
                         correlatednoise::Number, iidnoise::Number, samplesize=nothing)
 
-Conduct all polls that are required for the given electorate strategies.
+Conduct all polls that are required for the given strategies.
 
-estrats and methods must be vectors of the same length.
+The strategies can be any combinations of electorate strategies and voter strategies.
+strats and methods must be vectors of the same length.
 """
-function administerpolls(electorate, estrats::Vector{ElectorateStrategy}, methods::Vector,
+function administerpolls(electorate, (strats, methods),
                         correlatednoise::Number, iidnoise::Number, samplesize=nothing)
     infodict = Dict()
     if samplesize === nothing
@@ -37,11 +38,12 @@ function administerpolls(electorate, estrats::Vector{ElectorateStrategy}, method
         respondants = rand(1:size(electorate,2), samplesize) #drawing WITH replacement
     end
     noisevector = correlatednoise .* randn(size(electorate,1))
-    for i in eachindex(estrats, methods)
-        for spec in neededinfo(estrats[i], methods[i])
+    for i in eachindex(strats, methods)
+        for spec in neededinfo(strats[i], methods[i])
             addinfo!(infodict, electorate, spec, noisevector, iidnoise, respondants)
         end
     end
+    infodict[nothing] = nothing
     return infodict
 end
 """

@@ -9,7 +9,7 @@ export ExpScale, topbotem, topmeanem, scorebystd
 export PluralityVA, ApprovalVA, BordaVA, IRVVA, STARVA
 export ElectorateStrategy, castballots
 export make_electorate, ic, ImpartialCulture, DimModel, DCCModel, dcc, RepDrawModel
-export calc_vses
+export calc_vses, calc_esif
 
 
 import Statistics, Random
@@ -22,6 +22,8 @@ include("electoratestrategies.jl")
 include("polls.jl")
 include("votermodels.jl")
 include("vse.jl")
+include("esif.jl")
 include("fixedelectorates.jl")
+include("metrictools.jl")
 
 end

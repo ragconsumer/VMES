@@ -132,7 +132,11 @@ function winnersfromtab(tabulation::AbstractArray, method::VotingMethod, nwinner
     if nwinners == 1
         return winnersfromtab(tabulation, method)
     else
-        throw(ArgumentError("multiwinner results NYI"))
+        result_tuples = [(i, result) for (i, result) in enumerate(tabulation[:,end])]
+        sort!(result_tuples,
+            lt=((i1, r1), (i2, r2))->r1<r2 ? true : r1==r2 && i1>i2 ? true : false,
+            rev=true)
+        return[i for (i, _) in result_tuples[1:nwinners]]
     end
 end
 
