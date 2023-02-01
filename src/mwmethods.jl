@@ -10,7 +10,7 @@ struct RCV <: RankedChoiceVoting
 end
 InstantRunoffVoting = RankedChoiceVoting #Single-winner is implemented as a special case of STV.
 SingleTransferableVote = RankedChoiceVoting
-rcv = RCV(droop)
+@namevm rcv = RCV(droop)
 irv = rcv
 
 """
@@ -254,47 +254,47 @@ function tabulate(ballots, method::ScorePRTemplate, nwinners::Int)
     return results
 end
 
-allocatedscore = ScorePRTemplate(
+@namevm allocatedscore = ScorePRTemplate(
     5, droop, weightedscorecount, norunoffs, nothing,
     asreweight!, allweight, weightedpriority
 )
-sss = ScorePRTemplate(
+@namevm sss = ScorePRTemplate(
     5, droop, weightedscorecount, norunoffs, nothing,
     sssreweight!, sssweight, justscore
 )
-s5h = ScorePRTemplate(
+@namevm s5h = ScorePRTemplate(
     5, droop, weightedscorecount, norunoffs, nothing,
     asreweight!, sssweight, justscore
 )
-asr = ScorePRTemplate(
+@namevm asr = ScorePRTemplate(
     5, droop, weightedscorecount, allrunoffs, weightedstarrunoff,
     asreweight!, allweight, weightedpriority
 )
-sssr = ScorePRTemplate(
+@namevm sssr = ScorePRTemplate(
     5, droop, weightedscorecount, allrunoffs, weightedstarrunoff,
     sssreweight!, sssweight, justscore
 )
-s5hr = ScorePRTemplate(
+@namevm s5hr = ScorePRTemplate(
     5, droop, weightedscorecount, allrunoffs, weightedstarrunoff,
     asreweight!, sssweight, justscore
 )
-asfr = ScorePRTemplate(
+@namevm asfr = ScorePRTemplate(
     5, droop, weightedscorecount, runofflastround, weightedstarrunoff,
     asreweight!, allweight, weightedpriority
 )
-sssfr = ScorePRTemplate(
+@namevm sssfr = ScorePRTemplate(
     5, droop, weightedscorecount, runofflastround, weightedstarrunoff,
     sssreweight!, sssweight, justscore
 )
-s5hfr = ScorePRTemplate(
+@namevm s5hfr = ScorePRTemplate(
     5, droop, weightedscorecount, runofflastround, weightedstarrunoff,
     asreweight!, sssweight, justscore
 )
-asu = ScorePRTemplate(
+@namevm asu = ScorePRTemplate(
     5, droop, weightedscorecount, norunoffs, nothing,
     asreweight!, allweight, justscore
 )
-asur = ScorePRTemplate(
+@namevm asur = ScorePRTemplate(
     5, droop, weightedscorecount, allrunoffs, weightedstarrunoff,
     asreweight!, allweight, weightedpriority
 )

@@ -14,9 +14,16 @@ should be at the beginning of stratlist.
 struct ElectorateStrategy
     flexible_strategists::Int
     stratlist::Vector{VoterStrategy}
-    stratusers::Vector{Int}
+    stratusers::Vector{Integer}
 end
 
+function Base.show(io::IO, estrat::ElectorateStrategy)
+    print("ES[")
+    for i in eachindex(estrat.stratlist, estrat.stratusers)
+        print(estrat.stratlist[i],":",estrat.stratusers[i], ", ")
+    end
+    print("]")
+end
 """
     ElectorateStrategy(strategy, nstrategists::Int, nhons::Int, nbullets::Int)
 

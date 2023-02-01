@@ -8,6 +8,8 @@ abstract type RankedCondorcet <: RankedMethod end
 abstract type CondorcetCompMatOnly <: RankedCondorcet end
 abstract type RankedChoiceVoting <: RankedMethod end
 
+vmnames = Dict{VotingMethod, String}()
+
 include("mwmethods.jl")
 
 struct Top2Method <: VotingMethod
@@ -18,30 +20,39 @@ struct Smith <: OneRoundMethod
 end
 
 struct PluralityVoting <: ApprovalMethod; end #irrelevant that it's considered a cardinal method in the code
-plurality = PluralityVoting()
-pluralitytop2 = Top2Method(plurality)
+@namevm plurality = PluralityVoting()
+@namevm pluralitytop2 = Top2Method(plurality)
 struct ApprovalVoting <: ApprovalMethod; end
-approval = ApprovalVoting()
-approvaltop2 = Top2Method(approval)
+@namevm approval = ApprovalVoting()
+@namevm approvaltop2 = Top2Method(approval)
 
 struct ScoreVoting <: ScoringMethod
     maxscore::Int
 end
-score = ScoreVoting(5)
+@namevm score = ScoreVoting(5)
 struct STARVoting <: ScoringMethod
     maxscore::Int
 end
-star = STARVoting(5)
+@namevm star = STARVoting(5)
 
 struct BordaCount <: RankedMethod; end
-borda = BordaCount()
+@namevm borda = BordaCount()
 
 struct Minimax <: RankedCondorcet; end
-minimax = Minimax()
+@namevm minimax = Minimax()
 struct RankedRobin <: RankedCondorcet; end
-rankedrobin = RankedRobin()
+@namevm rankedrobin = RankedRobin()
 
-smithscore = Smith(score)
+@namevm smithscore = Smith(score)
+
+
+function Base.show(io::IO, m::M) where {M <: VotingMethod}
+    if m in keys(vmnames)
+        print(io, vmnames[m])
+    else
+        print(io, M, [getfield(m, i) for i in 1:fieldcount(M)])
+    end
+end
 
 """
     tabulate(ballots, method::Votingmethod, nwinners::Int)

@@ -16,6 +16,7 @@ import Statistics, Random
 import Distributions
 import Optim
 
+include("macros.jl")
 include("vms.jl")
 include("strategies.jl")
 include("electoratestrategies.jl")

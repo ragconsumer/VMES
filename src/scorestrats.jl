@@ -59,9 +59,9 @@ function roundtoscore(util, low, high, maxscore)
     round(Int, maxscore*(util-low)/(high-low))
 end
 
-topbotem = ArbitraryScoreScale(maximum, minimum, 1, 0, equalmeasureforscore)
-topmeanem = ArbitraryScoreScale(maximum, Statistics.mean, 1, -1, equalmeasureforscore)
-topmeanround = ArbitraryScoreScale(maximum, Statistics.mean, 1, -1, roundtoscore)
+@namestrat topbotem = ArbitraryScoreScale(maximum, minimum, 1, 0, equalmeasureforscore)
+@namestrat topmeanem = ArbitraryScoreScale(maximum, Statistics.mean, 1, -1, equalmeasureforscore)
+@namestrat topmeanround = ArbitraryScoreScale(maximum, Statistics.mean, 1, -1, roundtoscore)
 
 scorebystd(nstds) = ArbitraryScoreScale(mean_plus_std, Statistics.mean, nstds, -nstds, equalmeasureforscore)
 

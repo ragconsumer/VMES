@@ -2,6 +2,8 @@ abstract type VoterStrategy end
 abstract type BlindStrategy <: VoterStrategy end
 abstract type InformedStrategy <: VoterStrategy end
 
+stratnames = Dict{VoterStrategy, String}()
+
 struct HonestVote <: BlindStrategy; end
 hon = HonestVote()
 
@@ -22,6 +24,27 @@ include("scorestrats.jl")
 include("rankedstrats.jl")
 include("top2strats.jl")
 include("experimentalstrats.jl")
+
+function Base.show(io::IO, s::S) where {S <: BlindStrategy}
+    if s in keys(stratnames)
+        print(io, stratnames[s])
+    else
+        print(io, S)
+        if Base.issingletontype(S)
+            return
+        end
+        print("(")
+        for field in [getfield(s, i) for i in 1:fieldcount(S)-1]
+            print(field, ", ")
+        end
+        print(getfield(s, fieldcount(S)))
+        print(")")
+    end
+end
+
+function Base.show(io::IO, s::S) where {S <: InformedStrategy}
+    print(io, S, [getfield(s, fname) for fname in fieldnames(S) if fname != :neededinfo])
+end
 
 """
     vote(voter, strat::BlindStrategy, method::VotingMethod, polls)
