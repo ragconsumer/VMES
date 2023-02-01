@@ -4,6 +4,7 @@ abstract type RankedMethod <: OneRoundMethod end
 abstract type CardinalMethod <: OneRoundMethod end
 abstract type ScoringMethod <: CardinalMethod end
 abstract type ApprovalMethod <: CardinalMethod end
+abstract type PluralityMethod <: ApprovalMethod end
 abstract type RankedCondorcet <: RankedMethod end
 abstract type CondorcetCompMatOnly <: RankedCondorcet end
 abstract type RankedChoiceVoting <: RankedMethod end
@@ -19,7 +20,7 @@ struct Smith <: OneRoundMethod
     basemethod::OneRoundMethod
 end
 
-struct PluralityVoting <: ApprovalMethod; end #irrelevant that it's considered a cardinal method in the code
+struct PluralityVoting <: PluralityMethod; end #irrelevant that it's considered a cardinal method in the code
 @namevm plurality = PluralityVoting()
 @namevm pluralitytop2 = Top2Method(plurality)
 struct ApprovalVoting <: ApprovalMethod; end
@@ -66,6 +67,8 @@ function tabulate(ballots, method::VotingMethod, nwinners::Int)
         tabulate(ballots, method)
     end
 end
+
+tabulate(ballots, method::ApprovalMethod, ::Int) = tabulate(ballots, method)
 
 """
     tabulate(ballots, ::OneRoundMethod)

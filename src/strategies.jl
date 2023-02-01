@@ -69,7 +69,7 @@ function vote(voter, strat::HonestVote, method::RankedMethod)
     return ballot
 end
 
-vote(voter, ::HonestVote, method::PluralityVoting) = vote(voter, bullet, method)
+vote(voter, ::HonestVote, method::PluralityMethod) = vote(voter, bullet, method)
 
 """
     vote(voter, strat::Abstain, method::OneRoundMethod)

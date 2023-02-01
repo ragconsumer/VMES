@@ -5,6 +5,11 @@ Calcuate the Droop quota.
 """
 droop(nvot, nwinners) = Int(floor(nvot/(nwinners+1))) + 1
 
+"Single Nontransferable Vote (limited voting)"
+struct SNTV <: PluralityMethod
+end
+@namevm sntv = SNTV()
+
 struct RCV <: RankedChoiceVoting
     quota
 end
@@ -298,3 +303,32 @@ end
     5, droop, weightedscorecount, allrunoffs, weightedstarrunoff,
     asreweight!, allweight, weightedpriority
 )
+
+"""
+    mes_min_rho(weightsandscores, quota)
+
+Determine the value of rho that will be used for MES.
+
+weightsandscores is a vector of (weight, score) tuples.
+All scores must be positive. Quota is the total weight needed to be elected.
+"""
+function mes_min_rho(weightsandscores, quota)
+    #sort by weight/score
+    sortedws = sort(weightsandscores, lt=((w1,s1),(w2,s2)) -> w1*s2 < w2*s1)
+    scoresums = similar(sortedws, Int)
+    #scoresums[i] is the total score given by all ballots from the ith on.
+    currentsum = 0
+    for i in length(sortedws):-1:1
+        currentsum += sortedws[i][2]
+        scoresums[i] = currentsum
+    end
+    weightsum = 0
+    for (i, (weight, score)) in enumerate(sortedws)
+        if weightsum + scoresums[i]*weight/score > quota
+            return (quota-weightsum)/scoresums[i]
+        else
+            weightsum += weight
+        end
+    end
+    raise(ArgumentError("Insuffienct weight for mes_min_rho"))
+end

@@ -325,6 +325,11 @@ end
                                                           25 25 25 5
                                                           50 30 10 2]
     end
+    @testset "MES" begin
+        @test VMES.mes_min_rho([(0.5, 4), (1., 5), (1., 3)], 2) ≈ 3/16
+        @test VMES.mes_min_rho([(1., 3), (0.5, 4), (1., 5)], 2) ≈ 3/16
+        @test VMES.mes_min_rho([(0.5, 4), (0.2, 5), (1., 3)], 1) ≈ 4/35
+    end
 end
 
 @testset "Polls" begin
@@ -364,6 +369,11 @@ end
     strats = [ElectorateStrategy(hon, 11) for _ in 1:3]
     vses = calc_vses(10, VMES.TestModel(VMES.centersqueeze1), methods, strats, 11, 3)
     @test vses ≈ [(10.5 - 32.5/3)/(13-32.5/3), (9 - 32.5/3)/(13-32.5/3), 1]
+
+    electorate = [10;0;0;0;;10;0;0;0;;0;10;6;0;;0;0;10;0]
+    qs, highs, avgs = VMES.mw_winner_quality(electorate, [[1,2,3],[1,2,4],[1,3,4],[2,3,4]], 3)
+    @test highs == [5; 5; 10]
+    @test qs == [1.5; 0; 0; 1.5;; 46/12;30/12;36/12;26/12;; 10;7.5;9;5]
 
     @testset "esif" begin
         strats = [hon, abstain, bullet, ExpScale(3), ExpScale(3.1)]
