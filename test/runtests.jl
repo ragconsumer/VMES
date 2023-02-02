@@ -329,6 +329,26 @@ end
         @test VMES.mes_min_rho([(0.5, 4), (1., 5), (1., 3)], 2) ≈ 3/16
         @test VMES.mes_min_rho([(1., 3), (0.5, 4), (1., 5)], 2) ≈ 3/16
         @test VMES.mes_min_rho([(0.5, 4), (0.2, 5), (1., 3)], 1) ≈ 4/35
+
+        electedcands = Set(3)
+        ballots = [0;5;1;;1;0;5;;2;5;1]
+        weights = [.5, .5, .8]
+        winner, results = VMES.positiveweightapproval!(electedcands, weights, ballots)
+        @test winner == 1
+        @test results == [1.3,1.3,-1]
+        @test weights == [.5, 0, 0]
+        @test VMES.tabulate(VMES.scoretest1, mes, 3) ≈ [70 70 70
+                                                        55 55 55
+                                                        5 50/14 50/14-15/11
+                                                        50 50 10*(1-5/14-4/11)]
+        @test VMES.tabulate(VMES.scoretest2, mes, 2) ≈ [50 50
+                                                        20 2.5
+                                                        30 7.5
+                                                        5 5]
+        @test VMES.tabulate(VMES.scoretest2, mes, 3) ≈ [50 50 50
+                                                        20 5 5-10/7
+                                                        35 35 35
+                                                        5 5 10/7]
     end
 end
 

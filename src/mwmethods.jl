@@ -4,6 +4,12 @@
 Calcuate the Droop quota.
 """
 droop(nvot, nwinners) = Int(floor(nvot/(nwinners+1))) + 1
+"""
+    exacthare(nvot, nwinners)
+
+Calculate the exact Hare quota
+"""
+exacthare(nvot, nwinners) = nvot/nwinners
 
 "Single Nontransferable Vote (limited voting)"
 struct SNTV <: PluralityMethod
@@ -310,7 +316,8 @@ end
 Determine the value of rho that will be used for MES.
 
 weightsandscores is a vector of (weight, score) tuples.
-All scores must be positive. Quota is the total weight needed to be elected.
+All scores must be positive and the total weight must exceed the quota.
+Quota is the total weight needed to be elected.
 """
 function mes_min_rho(weightsandscores, quota)
     #sort by weight/score
@@ -324,11 +331,79 @@ function mes_min_rho(weightsandscores, quota)
     end
     weightsum = 0
     for (i, (weight, score)) in enumerate(sortedws)
-        if weightsum + scoresums[i]*weight/score > quota
+        if weightsum + scoresums[i]*weight/score >= quota
             return (quota-weightsum)/scoresums[i]
         else
             weightsum += weight
         end
     end
-    raise(ArgumentError("Insuffienct weight for mes_min_rho"))
+    throw(ArgumentError("Insuffienct weight for mes_min_rho"))
+end
+
+struct MES <: ScorePR
+    quota
+    fallbackround!
+end
+
+function positiveweightapproval!(electedcands, weights, ballots)
+    ncand, nvot = size(ballots)
+    weight_totals = [cand ∈ electedcands ? -1 :
+                        sum(weights[i] for i in 1:nvot if ballots[cand, i] > 0 ) for cand in 1:ncand]
+    winner = argmax(weight_totals)
+    push!(electedcands, winner)
+    for i in eachindex(weights)
+        if ballots[winner, i] > 0
+            weights[i] = 0
+        end
+    end
+    return winner, weight_totals
+end
+
+@namevm mes = MES(exacthare, positiveweightapproval!)
+
+function tabulate(ballots, method::MES, nwinners::Int)
+    ncand, nvot = size(ballots)
+    quota = method.quota(nvot, nwinners)
+    weights = ones(Float64, nvot)
+    electedcands = Set{Int}()
+    winnerdisplays = zeros(Float64, ncand)
+    results = zeros(Float64, ncand, 0)
+    while length(electedcands) < nwinners
+        weight_totals = [cand ∈ electedcands ? -1 :
+                        sum(weights[i] for i in 1:nvot if ballots[cand, i] > 0 ) for cand in 1:ncand]
+        if any(weight_totals .> quota)
+            rhos = ones(Float64, ncand)
+            for cand in 1:ncand
+                if weight_totals[cand] > quota
+                    weightsandscores = [(weights[b], ballots[cand, b]) for b in 1:nvot if weights[b] > 0 && ballots[cand, b] > 0]
+                    rhos[cand] = mes_min_rho(weightsandscores, quota)
+                end
+            end
+            winner = argmin(rhos)
+            push!(electedcands, winner)
+            rho = rhos[winner]
+            winnerdisplays[winner] = quota/rho
+            for i in 1:nvot
+                weights[i] = max(weights[i] - rho*ballots[winner, i], 0)
+            end
+            resultline = Vector{Float64}(undef, ncand)
+            for c in 1:ncand
+                if c in electedcands
+                    resultline[c] = winnerdisplays[c]
+                elseif weight_totals[c] > quota
+                    resultline[c] = quota/rhos[c]
+                else
+                    resultline[c] = weight_totals[c]
+                end
+            end
+        else
+            winner, resultline = method.fallbackround!(electedcands, weights, ballots)
+            winnerdisplays[winner] = resultline[winner]
+            for c in electedcands
+                resultline[c] = winnerdisplays[c]
+            end
+        end
+        results = hcat(results, resultline)
+    end
+    return results
 end
