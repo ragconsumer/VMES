@@ -325,7 +325,7 @@ end
                                                           25 25 25 5
                                                           50 30 10 2]
     end
-    @testset "MES" begin
+    @testset "MES and TEA" begin
         @test VMES.mes_min_rho([(0.5, 4), (1., 5), (1., 3)], 2) ≈ 3/16
         @test VMES.mes_min_rho([(1., 3), (0.5, 4), (1., 5)], 2) ≈ 3/16
         @test VMES.mes_min_rho([(0.5, 4), (0.2, 5), (1., 3)], 1) ≈ 4/35
@@ -337,6 +337,13 @@ end
         @test winner == 1
         @test results == [1.3,1.3,-1]
         @test weights == [.5, 0, 0]
+        electedcands = Set(3)
+        ballots = [0;5;1;;1;0;5;;2;5;1]
+        weights = [.5, .5, .8]
+        winner, results = VMES.weightedscorefallback!(electedcands, weights, ballots)
+        @test winner == 2
+        @test results == [2.1,6.5,-1]
+        @test weights == [0, 0.5, 0]
         @test VMES.tabulate(VMES.scoretest1, mes, 3) ≈ [70 70 70
                                                         55 55 55
                                                         5 50/14 50/14-15/11
@@ -349,6 +356,10 @@ end
                                                         20 5 5-10/7
                                                         35 35 35
                                                         5 5 10/7]
+        @test VMES.tabulate(VMES.scoretest2, VMES.tea, 3) == [10 10 10 10 10 10 10 10 10
+                                                              0 0 0 4 0 3 0 2 10
+                                                              5 5 5 5 5 5 5 5 5
+                                                              5 5 0 4 0 3 0 2 0]
     end
 end
 

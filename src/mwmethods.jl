@@ -307,7 +307,7 @@ end
 )
 @namevm asur = ScorePRTemplate(
     5, droop, weightedscorecount, allrunoffs, weightedstarrunoff,
-    asreweight!, allweight, weightedpriority
+    asreweight!, allweight, justscore
 )
 
 """
@@ -337,10 +337,14 @@ function mes_min_rho(weightsandscores, quota)
             weightsum += weight
         end
     end
+    if weightsum ≈ quota
+        return 1
+    end
     throw(ArgumentError("Insuffienct weight for mes_min_rho"))
 end
 
 struct MES <: ScorePR
+    maxscore
     quota
     fallbackround!
 end
@@ -348,7 +352,7 @@ end
 function positiveweightapproval!(electedcands, weights, ballots)
     ncand, nvot = size(ballots)
     weight_totals = [cand ∈ electedcands ? -1 :
-                        sum(weights[i] for i in 1:nvot if ballots[cand, i] > 0 ) for cand in 1:ncand]
+                        sum((weights[i] for i in 1:nvot if ballots[cand, i] > 0), init=0) for cand in 1:ncand]
     winner = argmax(weight_totals)
     push!(electedcands, winner)
     for i in eachindex(weights)
@@ -359,7 +363,23 @@ function positiveweightapproval!(electedcands, weights, ballots)
     return winner, weight_totals
 end
 
-@namevm mes = MES(exacthare, positiveweightapproval!)
+function weightedscorefallback!(electedcands, weights, ballots)
+    resultline = weightedscorecount(ballots, weights, nothing)
+    for c in electedcands
+        resultline[c] = -1
+    end
+    winner = argmax(resultline)
+    push!(electedcands, winner)
+    for i in eachindex(weights)
+        if ballots[winner, i] > 0
+            weights[i] = 0
+        end
+    end
+    return winner, resultline
+end
+
+@namevm mes = MES(5, exacthare, positiveweightapproval!)
+@namevm mesdroop = MES(5, droop, positiveweightapproval!)
 
 function tabulate(ballots, method::MES, nwinners::Int)
     ncand, nvot = size(ballots)
@@ -370,7 +390,7 @@ function tabulate(ballots, method::MES, nwinners::Int)
     results = zeros(Float64, ncand, 0)
     while length(electedcands) < nwinners
         weight_totals = [cand ∈ electedcands ? -1 :
-                        sum(weights[i] for i in 1:nvot if ballots[cand, i] > 0 ) for cand in 1:ncand]
+                        sum((weights[i] for i in 1:nvot if ballots[cand, i] > 0), init=0) for cand in 1:ncand]
         if any(weight_totals .> quota)
             rhos = ones(Float64, ncand)
             for cand in 1:ncand
@@ -402,6 +422,76 @@ function tabulate(ballots, method::MES, nwinners::Int)
             for c in electedcands
                 resultline[c] = winnerdisplays[c]
             end
+        end
+        results = hcat(results, resultline)
+    end
+    return results
+end
+
+"""
+Threshold Equal Approval
+See https://electowiki.org/wiki/Threshold_Equal_Approval
+"""
+struct TEA <: ScorePR
+    maxscore
+    quota
+    fallbackround!
+end
+
+@namevm tea = TEA(5, exacthare, weightedscorefallback!)
+@namevm teadroop = TEA(5, droop, weightedscorefallback!)
+
+function tabulate(ballots, method::TEA, nwinners::Int)
+    FLOATING_POINT_EPSILON = 1e-7
+    threshold = method.maxscore #The lowest score that counts as an appoval
+    ncand, nvot = size(ballots)
+    quota = method.quota(nvot, nwinners)
+    weights = ones(Float64, nvot)
+    electedcands = Set{Int}()
+    winnerdisplays = zeros(Float64, ncand)
+    results = zeros(Float64, ncand, 0)
+    while threshold > 0 && length(electedcands) < nwinners
+        weight_totals = [cand ∈ electedcands ? -1 :
+                        sum((weights[i] for i in 1:nvot if ballots[cand, i] >= threshold), init=0)
+                        for cand in 1:ncand]
+        resultline = [c ∈ electedcands ? winnerdisplays[c] : weight_totals[c]
+                        for c in 1:ncand]
+        if any(weight_totals .> quota - FLOATING_POINT_EPSILON)
+            #elect someone according to MES
+            rhos = fill(2.0, ncand)
+            for cand in 1:ncand
+                if weight_totals[cand] > quota - FLOATING_POINT_EPSILON
+                    weightsandones = [
+                        (weights[b], 1) for b in 1:nvot
+                        if weights[b] > 0 && ballots[cand, b] >= threshold]
+                    rhos[cand] = mes_min_rho(weightsandones, quota)
+                    resultline[cand] = quota/rhos[cand]
+                end
+            end
+            winner = argmin(rhos)
+            push!(electedcands, winner)
+            rho = rhos[winner]
+            winnerdisplays[winner] = quota/rho
+            for i in 1:nvot
+                if ballots[winner, i] >= threshold
+                    weights[i] = max(weights[i] - rho, 0)
+                end
+            end
+            results = hcat(results, resultline)
+        else
+            threshold -= 1
+            results = hcat(results, resultline,
+                [c ∈ electedcands ? max(winnerdisplays[c], threshold+1) : threshold
+                for c in 1:ncand])
+        end
+    end
+    #Handle the case that we need to elect people who don't have a full quota at any threshold
+    while length(electedcands) < nwinners
+        winner, resultline = method.fallbackround!(electedcands, weights, ballots)
+        winnerdisplays[winner] = resultline[winner]
+        resultline ./= method.maxscore
+        for c in electedcands
+            resultline[c] = winnerdisplays[c]
         end
         results = hcat(results, resultline)
     end
