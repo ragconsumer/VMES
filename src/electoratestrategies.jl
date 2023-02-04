@@ -18,11 +18,11 @@ struct ElectorateStrategy
 end
 
 function Base.show(io::IO, estrat::ElectorateStrategy)
-    print("ES[")
-    for i in eachindex(estrat.stratlist, estrat.stratusers)
-        print(estrat.stratlist[i],":",estrat.stratusers[i], ", ")
+    print(io, "(")
+    for i in 1:length(estrat.stratlist)-1
+        print(io, estrat.stratlist[i],":",estrat.stratusers[i], ",")
     end
-    print("]")
+    print(io, estrat.stratlist[end],":",estrat.stratusers[end],")")
 end
 """
     ElectorateStrategy(strategy, nstrategists::Int, nhons::Int, nbullets::Int)

@@ -15,6 +15,7 @@ export calc_vses, calc_esif
 import Statistics, Random
 import Distributions
 import Optim
+using DataFrames
 
 include("macros.jl")
 include("vms.jl")

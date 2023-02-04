@@ -5,13 +5,13 @@ abstract type InformedStrategy <: VoterStrategy end
 stratnames = Dict{VoterStrategy, String}()
 
 struct HonestVote <: BlindStrategy; end
-hon = HonestVote()
+@namestrat hon = HonestVote()
 
 struct BulletVote <: BlindStrategy; end
-bullet = BulletVote()
+@namestrat bullet = BulletVote()
 
 struct Abstain <: BlindStrategy; end
-abstain = Abstain()
+@namestrat abstain = Abstain()
 
 struct ViabilityAware <: VoterStrategy
     neededpolls::Vector

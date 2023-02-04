@@ -398,7 +398,7 @@ end
 @testset "Metrics" begin
     methods = [plurality, irv, minimax]
     strats = [ElectorateStrategy(hon, 11) for _ in 1:3]
-    vses = calc_vses(10, VMES.TestModel(VMES.centersqueeze1), methods, strats, 11, 3)
+    vses = calc_vses(10, VMES.TestModel(VMES.centersqueeze1), methods, strats, 11, 3).VSE
     @test vses ≈ [(10.5 - 32.5/3)/(13-32.5/3), (9 - 32.5/3)/(13-32.5/3), 1]
 
     electorate = [10;0;0;0;;10;0;0;0;;0;10;6;0;;0;0;10;0]
@@ -446,10 +446,10 @@ end
         utiltotals = VMES.one_esif_iter(VMES.TestModel(electorate), methodsandstrats, 3, 4, 0, 0, 1)
         @test utiltotals == [0. 3 0 1 -3 3 0 -3 -2 0 1]
 
-        esifs = calc_esif(10, VMES.TestModel(electorate), methodsandstrats, 3, 4, 0, 0, 1)[4]
+        esifs = calc_esif(10, VMES.TestModel(electorate), methodsandstrats, 3, 4, 0, 0, 1).ESIF
         @test esifs == [1, 2, 1, 4/3, 0, 2, 1, -0.5, 0, 1, 1.5]
 
         totals = [-3 0. 3 -3 0 1 -3 -3 3 -2 0 -3 -2 -2 0 1]
-        @test VMES.totals_to_esif(totals, methodsandstrats)[4] == [1, 2, 1, 4/3, 0, 2, 1, -0.5, 0, 1, 1.5]
+        @test VMES.totals_to_esif(totals, methodsandstrats).ESIF == [1, 2, 1, 4/3, 0, 2, 1, -0.5, 0, 1, 1.5]
     end
 end

@@ -67,6 +67,14 @@ scorebystd(nstds) = ArbitraryScoreScale(mean_plus_std, Statistics.mean, nstds, -
 
 ExpScale(exp) = ExpScale(exp, topmeanem)
 
+function Base.show(io::IO, s::ExpScale)
+    if s.basescale == topmeanem
+        print(io, "ex", s.exponent)
+    else
+        print(io, "ex", s.exponent, s.basescale)
+    end
+end
+
 """
     vote(voter, strat::ArbitraryScoreScale, method::ScoringMethod)
 

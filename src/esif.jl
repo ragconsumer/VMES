@@ -50,8 +50,8 @@ function totals_to_esif(totals::Matrix{Float64}, methodsandstrats)
     basestratentries = Vector{ElectorateStrategy}(undef, numentries)
     methodentries = Vector{VotingMethod}(undef, numentries)
     stratentries = Vector{VoterStrategy}(undef, numentries)
+    metricentries = Vector{String}(undef, numentries)
     esifs = Vector{Float64}(undef, numentries)
-    
     for metric in 1:nmetrics
         i = 1 #index of row of results being constructed
         totalsindex = 1 #index of 
@@ -64,6 +64,7 @@ function totals_to_esif(totals::Matrix{Float64}, methodsandstrats)
                         basestratentries[(metric-1)*ncolumns + i] = basestrat
                         methodentries[(metric-1)*ncolumns + i] = method
                         stratentries[(metric-1)*ncolumns + i] = strat
+                        metricentries[(metric-1)*ncolumns + i] = metricnames(metric)
                         esifs[(metric-1)*ncolumns + i] = (abstain_util-totals[metric, totalsindex])/abstain_util
                         i += 1
                         totalsindex += 1
@@ -72,7 +73,10 @@ function totals_to_esif(totals::Matrix{Float64}, methodsandstrats)
             end
         end
     end
-    return basestratentries, methodentries, stratentries, esifs
+    return DataFrame(:Metric=>metricentries, :Method=>methodentries,
+                     Symbol("Base Strategy")=>basestratentries, :Strategy=>stratentries,
+                     :ESIF=>esifs)
+    #return basestratentries, methodentries, stratentries, esifs
 end
 
 """

@@ -343,6 +343,9 @@ function mes_min_rho(weightsandscores, quota)
     throw(ArgumentError("Insuffienct weight for mes_min_rho"))
 end
 
+"""
+Method of Equal Shares
+"""
 struct MES <: ScorePR
     maxscore
     quota

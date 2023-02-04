@@ -29,9 +29,9 @@ function calc_vses(niter::Int,
             results[i, metric] = (winnersums[i, metric]-avgsums[metric])/(bestsums[metric]-avgsums[metric])
         end
     end
-    return results
-    #vses = [(w-avgsum)/(bestsum-avgsum) for w in winnersums]
-    #return vses
+    scenariodf = DataFrame(:Method=>methods, Symbol("Electorate Strategy")=>estrats)
+    resultdf = DataFrame(results, nwinners==1 ? ["VSE"] : [string(metricnames(met), " VSE") for met in 1:numutilmetrics(nwinners)])
+    return hcat(scenariodf, resultdf)
 end
 
 """
