@@ -57,7 +57,6 @@ end
 
 struct ApprovalVA <: InformedStrategy
     neededinfo
-    pollinguncertainty::Float64
 end
 
 """
@@ -72,7 +71,6 @@ end
 
 struct PluralityVA <: InformedStrategy
     neededinfo
-    pollinguncertainty::Float64
 end
 
 """

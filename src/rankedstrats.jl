@@ -1,11 +1,9 @@
 struct BordaVA <: InformedStrategy
     neededinfo
-    pollinguncertainty::Float64
 end
 
 struct IRVVA <: InformedStrategy
     neededinfo
-    pollinguncertainty::Float64
 end
 
 """

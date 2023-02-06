@@ -11,15 +11,16 @@ methods and estrats must be vectors of the same length.
 """
 function calc_vses(niter::Int,
                    vmodel::VoterModel,
-                   methods::Vector{<: VotingMethod},
+                   methods::Vector{<:VotingMethod},
                    estrats::Vector{ElectorateStrategy},
-                   nvot::Int, ncand::Int, pollingerror=0.1, nwinners=1)
+                   nvot::Int, ncand::Int, nwinners::Int=1,
+                   correlatednoise::Float64=0.1, iidnoise::Float64=0.0)
     winnerutils = Array{Float64, 3}(undef, length(methods), numutilmetrics(nwinners), niter)
     bestutils = Matrix{Float64}(undef, numutilmetrics(nwinners), niter)
     avgutils = Matrix{Float64}(undef, numutilmetrics(nwinners), niter)
     Threads.@threads for i in 1:niter
         winnerutils[:, :, i], bestutils[:, i], avgutils[:, i] = one_vse_iter(
-            vmodel, methods, estrats, nvot, ncand, pollingerror, nwinners)
+            vmodel, methods, estrats, nvot, ncand, nwinners, correlatednoise, iidnoise)
     end
     bestsums, avgsums = sum(bestutils, dims=2), sum(avgutils, dims=2)
     winnersums = sum(winnerutils, dims=3)
@@ -34,6 +35,17 @@ function calc_vses(niter::Int,
     return hcat(scenariodf, resultdf)
 end
 
+function calc_vses(niter::Int,
+    vmodel::VoterModel,
+    methods::Vector{<:VotingMethod},
+    estrats::Vector,
+    nvot::Int, ncand::Int, nwinners::Int=1,
+    correlatednoise::Float64=0.1, iidnoise::Float64=0.0)
+    calc_vses(niter, vmodel, methods,
+            [esfromtemplate(template, hypot(correlatednoise, iidnoise)) for template in estrats],
+            nvot, ncand, nwinners, correlatednoise, iidnoise)
+end
+
 """
     one_vse_iter(vmodel::VoterModel,
                       methods::Vector{<: VotingMethod},
@@ -45,9 +57,10 @@ Create a single electorate and determine the utilities needed for calculating VS
 function one_vse_iter(vmodel::VoterModel,
                       methods::Vector{<: VotingMethod},
                       estrats::Vector{ElectorateStrategy},
-                      nvot::Int, ncand::Int, pollingerror=0.1, nwinners=1)
+                      nvot::Int, ncand::Int, nwinners=1,
+                      correlatednoise::Float64=0.1, iidnoise::Float64=0.0)
     electorate = make_electorate(vmodel, nvot, ncand)
-    infodict = administerpolls(electorate, (estrats, methods), pollingerror, 0)
+    infodict = administerpolls(electorate, (estrats, methods), correlatednoise, iidnoise)
     ballots = castballots.((electorate,), estrats, methods, (infodict,))
     winnersets = getwinners.(ballots, methods, nwinners)
     if nwinners == 1

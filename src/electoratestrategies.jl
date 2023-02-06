@@ -14,7 +14,7 @@ should be at the beginning of stratlist.
 struct ElectorateStrategy
     flexible_strategists::Int
     stratlist::Vector{VoterStrategy}
-    stratusers::Vector{Integer}
+    stratusers::Vector{Int}
 end
 
 function Base.show(io::IO, estrat::ElectorateStrategy)

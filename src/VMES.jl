@@ -8,6 +8,8 @@ export hon, bullet, abstain, TopBottomThreshold, TopMeanThreshold, StdThreshold
 export ExpScale, topbotem, topmeanem, scorebystd
 export PluralityVA, ApprovalVA, BordaVA, IRVVA, STARVA
 export ElectorateStrategy, castballots
+export ESTemplate, BasicPollStratTemplate, esfromtemplate
+export BasicWinProbTemplate, approvalvatemplate, pluralityvatemplate, starvatemplate, irvvatemplate, esfromtemplate
 export make_electorate, ic, ImpartialCulture, DimModel, DCCModel, dcc, RepDrawModel
 export calc_vses, calc_esif
 
@@ -21,6 +23,7 @@ include("macros.jl")
 include("vms.jl")
 include("strategies.jl")
 include("electoratestrategies.jl")
+include("strat_templates.jl")
 include("polls.jl")
 include("votermodels.jl")
 include("vse.jl")

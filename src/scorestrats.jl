@@ -27,7 +27,6 @@ end
 
 struct STARVA <: InformedStrategy
     neededinfo
-    pollinguncertainty::Float64
     scoreimportance::Float64
 end
 
@@ -115,7 +114,7 @@ s[i] is how good it is for candidate i to have a high score.
 r[j, i] is how good it is for candidate i t have a higher score than candidate j
 for the automatic runoff.
 """
-function starvacoeffs(v::Vector, ::VoterStrategy, p::Vector)
+function starvacoeffs(v, ::VoterStrategy, p)
     ncand= length(v)
     scoeffs = Vector{Float64}(undef, ncand)
     rcoeffs = Matrix{Float64}(undef, ncand, ncand)
@@ -129,11 +128,11 @@ function starvacoeffs(v::Vector, ::VoterStrategy, p::Vector)
 end
 
 """
-    vote(voter, strat::STARVA, method::ScoringMethod, winprobs::Vector)
+    vote(voter, strat::STARVA, method::ScoringMethod, winprobs)
 
 Balance the incentives to exaggerate and to score candidates differently, accounting for viability.
 """
-function vote(voter, strat::STARVA, method::ScoringMethod, winprobs::Vector)
+function vote(voter, strat::STARVA, method::ScoringMethod, winprobs)
     ncand = length(voter)
     ballot = vote(voter, hon, method)
     scoeffs, rcoeffs = starvacoeffs(voter, strat, winprobs)
