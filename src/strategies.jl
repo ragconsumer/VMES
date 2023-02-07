@@ -25,6 +25,19 @@ include("rankedstrats.jl")
 include("top2strats.jl")
 include("experimentalstrats.jl")
 
+function Base.:(==)(x::T, y::T) where T <: VoterStrategy
+    all(getfield(x, fname) == getfield(y, fname) for fname in fieldnames(T))
+end
+
+function Base.hash(s::T, h::UInt) where T <: VoterStrategy
+    h = hash(T, h)
+    for field in fieldnames(T)
+        h = hash(getfield(s, field), h)
+    end
+    return h
+end
+
+
 function Base.show(io::IO, s::S) where {S <: BlindStrategy}
     if s in keys(stratnames)
         print(io, stratnames[s])
@@ -33,12 +46,12 @@ function Base.show(io::IO, s::S) where {S <: BlindStrategy}
         if Base.issingletontype(S)
             return
         end
-        print("(")
+        print(io, "(")
         for field in [getfield(s, i) for i in 1:fieldcount(S)-1]
-            print(field, ", ")
+            print(io, field, ", ")
         end
-        print(getfield(s, fieldcount(S)))
-        print(")")
+        print(io, getfield(s, fieldcount(S)))
+        print(io, ")")
     end
 end
 

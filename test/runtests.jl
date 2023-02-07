@@ -155,7 +155,7 @@ end
     @test vote([0,1,5], ApprovalVA(nothing), approval, [.49,.49,.02]) == [0,1,1]
     @test vote([0,1,5], ApprovalVA(nothing), approval, [.05,.9,.05]) == [0,0,1]
     @test vote([3,2,1,0], BordaVA(nothing), borda, [.05, .4, .4, .05]) == [2, 3, 0, 1]
-    @test vote([3,2,1,0], IRVVA(nothing), irv, [.05, .4, .4, .05]) == [2, 3, 1, 0]
+    @test vote([3,2,1,0], IRVVA(nothing, 0), irv, [.05, .4, .4, .05]) == [2, 3, 1, 0]
     sc, rc = VMES.starvacoeffs([0,1,3], hon, [.5,.4,.1])
     @test isapprox(sc, [-.08, -0.02, 0.1], atol=1e-10)
     @test isapprox(rc, [0 0.2 0.15
@@ -177,6 +177,7 @@ end
             2  2  2  2  0  0  0  0  0  0  0
             1  1  1  1  0  0  2  0  0  0  0
             0  0  0  0  0  0  0  2  2  2  2]
+    @test ElectorateStrategy(5, [hon], [5]) == ElectorateStrategy(5, [hon], [5])
     es = ElectorateStrategy(4, [hon, abstain, bullet], [4,2,5])
     @test VMES.strats_and_users_in_range(es, 1, 1) == ([hon], [1])
     @test VMES.strats_and_users_in_range(es, 11, 11) == ([bullet], [1])
@@ -187,7 +188,7 @@ end
     template = ESTemplate(5, [[(hon, 1,10), (bullet, 11,15), (abstain, 16,16)], [(approvalvatemplate,1,3)]])
     poll_es = ElectorateStrategy(5, [hon, bullet, abstain], [10, 5, 1])
     vastrat = ApprovalVA(VMES.WinProbSpec(VMES.BasicPollSpec(approval, poll_es), 0.5))
-    #estarget = ElectorateStrategy(5, [vastrat, hon, bullet, abstain], [3,7,5,1])
+    estarget = ElectorateStrategy(5, [vastrat, hon, bullet, abstain], [3,7,5,1])
     es =  esfromtemplate(template, 0.5)
     @test es.stratusers == [3,7,5,1]
     @test es.stratlist[2:end] == [hon, bullet, abstain]
@@ -195,6 +196,11 @@ end
     @test es.stratlist[1].neededinfo.uncertainty == 0.5
     @test es.stratlist[1].neededinfo.pollspec.estrat.stratusers == [10, 5, 1]
     @test es.stratlist[1].neededinfo.pollspec.estrat.stratlist == [hon, bullet, abstain]
+    @test es == estarget
+    template = VMES.ApprovalWinProbTemplate(VMES.IRVVA, 0.1,VMES.TopMeanThreshold(0.5),[0.0])
+    a = VMES.vsfromtemplate(template, ElectorateStrategy(hon,5), 0.2)
+    b = VMES.vsfromtemplate(template, ElectorateStrategy(hon,5), 0.2)
+    @test hash(a) == hash(b)
 end
 
 @testset "Polls to Probabilities" begin
@@ -384,6 +390,7 @@ end
 @testset "Polls" begin
     polldict = Dict()
     spec = VMES.BasicPollSpec(plurality, ElectorateStrategy(hon, 12))
+    @test spec == VMES.BasicPollSpec(plurality, ElectorateStrategy(hon, 12))
     @test VMES.addinfo!(Dict(), VMES.centersqueeze2, spec, [.1;.1;-.1;;]) == [.6;.35;.15;;]
     @test VMES.addinfo!(Dict(), VMES.centersqueeze2, spec, [.6;.1;-.3;;]) == [1;.35;0;;]
     p = VMES.addinfo!(Dict(), VMES.centersqueeze2, spec, [.1;.1;-.1;;], 0.01)
@@ -396,6 +403,7 @@ end
 
     estrat = ElectorateStrategy(hon, 2)
     vaestrat = ElectorateStrategy(PluralityVA(VMES.WinProbSpec(spec, 0.1)), 2)
+    @test vaestrat == ElectorateStrategy(PluralityVA(VMES.WinProbSpec(spec, 0.1)), 2)
     counts = Dict{Array, Int}()
     for _ in 1:100
         polldict = VMES.administerpolls(e, ([vaestrat], [plurality]), 0, 0, 1)
@@ -453,9 +461,9 @@ end
 
         methodsandstrats = [([star, score], [hon, bullet], [hon, bullet, ExpScale(2)]),
                             ([rcv],[hon], [bullet, abstain])]
-        stratinputs, methodinputs = VMES.getadminpollsinput(methodsandstrats)
-        @test stratinputs == [hon, bullet, hon, bullet, ExpScale(2), hon, bullet, abstain]
-        @test methodinputs == [repeat([star], 5); repeat([rcv], 3)]
+        stratinputs, methodinputs = VMES.getadminpollsinput(methodsandstrats, 0.1)
+        @test stratinputs == [hon, hon, bullet, ExpScale(2), bullet, hon, bullet, ExpScale(2), hon, bullet, abstain]
+        @test methodinputs == [repeat([star], 8); repeat([rcv], 3)]
 
         #test one_esif_iter
         methodsandstrats = [([score, star], [ElectorateStrategy(hon,3), ElectorateStrategy(ExpScale(3),3)], [hon, bullet]),

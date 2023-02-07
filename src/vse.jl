@@ -1,9 +1,10 @@
 """
     calc_vses(niter::Int,
                    vmodel::VoterModel,
-                   methods::Vector{<: VotingMethod},
+                   methods::Vector{<:VotingMethod},
                    estrats::Vector{ElectorateStrategy},
-                   nvot::Int, ncand::Int, pollingerror=0.1, nwinners=1)
+                   nvot::Int, ncand::Int, nwinners::Int=1,
+                   correlatednoise::Float64=0.1, iidnoise::Float64=0.0)
 
 Determine the VSEs of the given voting methods and strategies.
 
@@ -32,7 +33,14 @@ function calc_vses(niter::Int,
     end
     scenariodf = DataFrame(:Method=>methods, Symbol("Electorate Strategy")=>estrats)
     resultdf = DataFrame(results, nwinners==1 ? ["VSE"] : [string(metricnames(met), " VSE") for met in 1:numutilmetrics(nwinners)])
-    return hcat(scenariodf, resultdf)
+    results = hcat(scenariodf, resultdf)
+    results[!, "Voter Model"] .= [vmodel]
+    results[!, "nvot"] .= nvot
+    results[!, "ncand"] .= ncand
+    results[!, "Correlated Noise"] .= correlatednoise
+    results[!, "IID Noise"] .= iidnoise
+    results[!, "Iterations"] .= niter
+    return results
 end
 
 function calc_vses(niter::Int,

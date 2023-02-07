@@ -19,6 +19,31 @@ struct TieForTwoSpec <: ProbSpec
     winprobspec::WinProbSpec
 end
 
+function Base.:(==)(x::BasicPollSpec, y::BasicPollSpec)
+    x.method == y.method && x.estrat == y.estrat
+end
+
+function Base.:(==)(x::WinProbSpec, y::WinProbSpec)
+    x.pollspec == y.pollspec && x.uncertainty == y.uncertainty
+end
+
+function Base.:(==)(x::TieForTwoSpec, y::TieForTwoSpec)
+    x.winprobspec == y.winprobspec
+end
+
+function Base.hash(x::BasicPollSpec, h::UInt)
+    h = hash(x.method, h)
+    h = hash(x.estrat, h)
+    return h
+end
+
+function Base.hash(x::WinProbSpec, h::UInt)
+    h = hash(x.pollspec, h)
+    h = hash(x.uncertainty, h)
+    return h
+end
+
+Base.hash(x::TieForTwoSpec, h::UInt) = hash(x.winprobspec, h)
 
 """
     administerpolls(electorate, (strats, methods),

@@ -17,12 +17,22 @@ struct ElectorateStrategy
     stratusers::Vector{Int}
 end
 
+function Base.:(==)(x::ElectorateStrategy, y::ElectorateStrategy)
+    x.flexible_strategists == y.flexible_strategists && x.stratlist == y.stratlist && x.stratusers == y.stratusers
+end
+
 function Base.show(io::IO, estrat::ElectorateStrategy)
     print(io, "(")
     for i in 1:length(estrat.stratlist)-1
         print(io, estrat.stratlist[i],":",estrat.stratusers[i], ",")
     end
     print(io, estrat.stratlist[end],":",estrat.stratusers[end],")")
+end
+
+function Base.hash(es::ElectorateStrategy, h::UInt)
+    h = hash(es.flexible_strategists, h)
+    h = hash(es.stratlist, h)
+    h = hash(es.stratusers, h)
 end
 """
     ElectorateStrategy(strategy, nstrategists::Int, nhons::Int, nbullets::Int)

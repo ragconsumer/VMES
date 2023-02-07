@@ -33,12 +33,20 @@ function calc_esif(niter::Integer, vmodel::VoterModel, methodsandstrats::Vector,
     m_and_s_abstain = [(methods, basestrats, cat(abstain, strats, dims=1))
                         for (methods, basestrats, strats) in methodsandstrats]
     results = Array{Float64}(undef, numutilmetrics(nwinners), num_esif_columns(m_and_s_abstain), niter)
-    Threads.@threads for i in 1:niter
+    #=Threads.@threads =#for i in 1:niter
         results[:, :, i] = one_esif_iter(vmodel, m_and_s_abstain, nvot, ncand,
                                         correlatednoise, iidnoise, nwinners)
     end
     totals = dropdims(sum(results, dims=3), dims=3) #memory inefficient summation
-    return totals_to_esif(totals, methodsandstrats)
+    results = totals_to_esif(totals, methodsandstrats)
+    results[!, "Voter Model"] .= [vmodel]
+    results[!, "nvot"] .= nvot
+    results[!, "ncand"] .= ncand
+    results[!, "nwinners"] .= nwinners
+    results[!, "Correlated Noise"] .= correlatednoise
+    results[!, "IID Noise"] .= iidnoise
+    results[!, "Iterations"] .= niter
+    return results
 end
 
 """
@@ -52,7 +60,7 @@ function totals_to_esif(totals::Matrix{Float64}, methodsandstrats)
     numentries = ncolumns*nmetrics
     basestratentries = Vector{ElectorateStrategy}(undef, numentries)
     methodentries = Vector{VotingMethod}(undef, numentries)
-    stratentries = Vector{VoterStrategy}(undef, numentries)
+    stratentries = Vector{Union{VoterStrategy, VoterStratTemplate}}(undef, numentries)
     metricentries = Vector{String}(undef, numentries)
     esifs = Vector{Float64}(undef, numentries)
     for metric in 1:nmetrics
@@ -91,7 +99,7 @@ A single iteration for ESIF.
 function one_esif_iter(vmodel::VoterModel, methodsandstrats::Vector, nvot::Integer, ncand::Integer,
                        correlatednoise::Number, iidnoise::Number, nwinners::Integer)
     electorate = make_electorate(vmodel, nvot, ncand)
-    admininput = getadminpollsinput(methodsandstrats)
+    admininput = getadminpollsinput(methodsandstrats, hypot(correlatednoise, iidnoise))
     infodict = administerpolls(electorate, admininput, correlatednoise, iidnoise)
     utiltotals = zeros(Float64, numutilmetrics(nwinners), num_esif_columns(methodsandstrats))
     bigutindex = 1
@@ -126,17 +134,22 @@ end
 
 Convert the vector of (methods, basestrats, strats) tuple to something compatible with administerpolls()
 """
-function getadminpollsinput(methodsandstrats)
-    total_length = sum(length(basestrats)+length(strats)
+function getadminpollsinput(methodsandstrats, uncertainty)
+    total_length = sum(length(basestrats)*(1 + length(strats))
                         for (methods, basestrats, strats) in methodsandstrats)
     stratinputs = Vector{Union{VoterStrategy, ElectorateStrategy}}(undef, total_length)
     methodinputs = Vector{VotingMethod}(undef, total_length)
     i = 1
     for (methods, basestrats, strats) in methodsandstrats
-        for strat in [basestrats; strats]
+        for basestrat in basestrats
             methodinputs[i] = methods[1]
-            stratinputs[i] = strat
+            stratinputs[i] = basestrat
             i += 1
+            for strat in strats
+                methodinputs[i] = methods[1]
+                stratinputs[i] = vsfromtemplate(strat, basestrat, uncertainty)
+                i += 1
+            end
         end
     end
     return stratinputs, methodinputs

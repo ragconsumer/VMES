@@ -23,7 +23,7 @@ end
 
 approvalvatemplate = BasicWinProbTemplate(ApprovalVA, approval, [])
 pluralityvatemplate = BasicWinProbTemplate(PluralityVA, plurality, [])
-starvatemplate = BasicWinProbTemplate(STARVA, score, [0.2])
+starvatemplate = BasicWinProbTemplate(STARVA, score, [0.1])
 
 struct ApprovalWinProbTemplate <: VoterStratTemplate
     basestrat::Union{DataType, Function}
@@ -32,7 +32,7 @@ struct ApprovalWinProbTemplate <: VoterStratTemplate
     stratargs::Vector{Any}
 end
 
-irvvatemplate = ApprovalWinProbTemplate(IRVVA, 0.05, hon, [])
+irvvatemplate = ApprovalWinProbTemplate(IRVVA, 0.05, hon, [0.0])
 
 """
 Contains the information needed to conventiently construct an electorate strategy.
@@ -97,7 +97,8 @@ function vsfromtemplate(template::BasicWinProbTemplate, pollestrat::ElectorateSt
 end
 function vsfromtemplate(template::ApprovalWinProbTemplate, base_estrat::ElectorateStrategy, pollinguncertainty::Float64)
     estrat = ElectorateStrategy(base_estrat.flexible_strategists,
-            [strat === bullet ? bullet : template.approvalstrat], base_estrat.stratusers)
+            [strat === bullet ? bullet : template.approvalstrat for strat in base_estrat.stratlist],
+            base_estrat.stratusers)
     return template.basestrat(
         WinProbSpec(BasicPollSpec(approval, estrat),
                     pollinguncertainty + template.extrauncertainty), template.stratargs...)
