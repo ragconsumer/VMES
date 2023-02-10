@@ -418,7 +418,63 @@ end
     end
     @test counts[[1;0;;]] + counts[[0;1;;]] + counts[[0.5;0.5;;]]== 100
     @test 30 < counts[[0.5;0.5;;]] < 70
+
+    a = [-0.1, -0.2]
+    VMES.clamptosum!(a, 1, 2)
+    @test a == [0.5, 0.5]
+    a = [1.,1]
+    VMES.clamptosum!(a, 1, 1)
+    @test a == [0.5, 0.5]
+    a = [0.4,1.1]
+    VMES.clamptosum!(a, 1, 1)
+    @test a ≈ [4/15, 11/15]
+    a = [0, 0.1,0.2,0.3,0.4, 9]
+    VMES.clamptosum!(a, 1, 0.5)
+    @test a ≈[0, 0.05, 0.1, 0.15, 0.2, 0.5]
+    a = [0.1, -0.2]
+    VMES.clamptosum!(a, 0, 1)
+    @test a == [0, 0]
     
+    @testset "Fancy Polls" begin
+        spec = VMES.StarPollSpec(star, ElectorateStrategy(hon, 12))
+        ballots = VMES.castballots(VMES.centersqueeze2, ElectorateStrategy(hon, 12), star, polldict)
+        scoreresults = VMES.hontabulate(VMES.centersqueeze2, score) ./60 + [.2;.1;0;;]
+        r2results = [.7;.6;0;;] ./ 1.3
+        @test VMES.makepoll(ballots, spec, [.2;.1;0;;], 0) ≈ [scoreresults r2results]
+
+        spec = VMES.RCVPollSpec(ElectorateStrategy(hon, 12))
+        @test VMES.addinfo!(Dict(), VMES.centersqueeze2, spec, [.6;.1;-.3;;]) ≈ [1.1/1.45;.35/1.45;0;;]
+        spec = VMES.RCVPollSpec(ElectorateStrategy(hon, 29))
+        @test VMES.addinfo!(Dict(), VMES.fivecand2party, spec, [0;0;0;0;0;;])==[8.0  12.0  12.0  12.0
+                                                                                4.0   0     0     0
+                                                                                6.0   6.0   6.0   0
+                                                                                6.0   6.0  11.0  17.0
+                                                                                5.0   5.0   0     0] ./ 29
+        @test VMES.addinfo!(Dict(), VMES.fivecand2party, spec, [0.1;0;0;0;0;;])[1,1] == (8/29 + 0.1)*10/11
+        @test VMES.addinfo!(Dict(), VMES.fivecand2party, spec, [0.1;0;0;0;0;;])[2,1] == 4*10/(29*11)
+        pollresults = VMES.addinfo!(Dict(), VMES.fivecand2party, spec, [0.1;0;0;0;0;;])
+        @test all(sum(pollresults, dims=1) .≈ 1)
+        @test VMES.addinfo!(Dict(), VMES.fivecand2party, spec, [0.1;0;0;0;0;;])[1,2] == (8/29 + 0.1)*10/11 + 4*10/(29*11)
+        @test VMES.addinfo!(Dict(), VMES.fivecand2party, spec, [-0.01;0;0;0;0;;])[1,2] ≈ (8/29 + 4/29 - 0.01)*100/99
+        spec = VMES.CondorcetPollSpec(minimax, ElectorateStrategy(hon, 11))
+        poll = VMES.addinfo!(Dict(), VMES.centersqueeze1, spec, [0.,0,0])
+        @test poll≈[0 5 5 -1
+                    6 0 7 1
+                    6 4 0 -3] ./ 11
+        poll = VMES.addinfo!(Dict(), VMES.centersqueeze1, spec, [0.1,-0.025,0])
+        @test poll[2,1] ≈ 6/11 - 0.125
+        @test poll[1,2] ≈ 5/11 + 0.125
+        @test poll[1,3] ≈ 5/11 + 0.1
+        @test poll[1,4] ≈ -1/11 + 0.2
+        spec = VMES.CondorcetPollSpec(rankedrobin, ElectorateStrategy(hon, 15))
+        poll = VMES.addinfo!(Dict(), VMES.cycle2, spec, [0.,0,0,0]) 
+        @test poll[:,1:4] == [0 0 0 4
+                              15 0 5 9
+                              15 10 0 4
+                              11 6 11 0] ./ 15
+        @test poll[:,5] == [0,2,2,2]
+        @test poll[:,6] ≈ [-999, -2/15, -2/15, 4/15]
+        end
 end
 
 @testset "Metrics" begin

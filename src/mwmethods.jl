@@ -23,13 +23,15 @@ InstantRunoffVoting = RankedChoiceVoting #Single-winner is implemented as a spec
 SingleTransferableVote = RankedChoiceVoting
 @namevm rcv = RCV(droop)
 irv = rcv
+stv = rcv
 
 """
     rcv_resort!(piles, allballots, indiciestosort, candsleft)
 
-Sort the indicies into the piles for the remaining candidates.
+Sort the indicies into the piles for the remaining candidates and return the weight given to each.
 """
-function rcv_resort!(piles, allballots, indiciestosort, candsleft)
+function rcv_resort!(piles, allballots, indiciestosort, candsleft, weights)
+    transfertotals = zeros(Float64, size(allballots, 1))
     for i in indiciestosort
         vote, bestRank = 0, 0
         for c in candsleft
@@ -39,8 +41,10 @@ function rcv_resort!(piles, allballots, indiciestosort, candsleft)
         end
         if vote != 0
             push!(piles[vote], i)
+            transfertotals[vote] += weights[i]
         end
     end
+    return transfertotals
 end
 
 """
@@ -50,41 +54,79 @@ end
     Weighted Inclusive Gregory, with candidates who achieve the quota skipped for transfers.
 """
 function tabulate(ballots, method::RCV, nwinners::Int)
-    ncands = size(ballots, 1)
-    nvot = size(ballots, 2)
-    quota = method.quota(nvot, nwinners)
-    piles = [Set{Int}() for _ in 1:ncands]
+    ncand, nvot = size(ballots)
+    optionally_fradulent_rcv_tabulation(
+        ballots, nwinners, method.quota(nvot, nwinners),false, zeros(Float64, ncand), 0.0)
+end
+
+"""
+    optionally_fradulent_rcv_tabulation(ballots, nwinners::Integer, quota, scale_results::Bool,
+                                             noisevector, iidnoise=0.)
+
+Tabulate an RCV election with the option of added noise.
+
+Scale_results specifies whether the results shouldbe give as a fraction of total ballots or
+as a number of (weighted) ballots.
+Quota is the support needed to be elected. It should be a number of voters if scale_results is false,
+or a fraction of voters if scale_results is true.
+"""
+function optionally_fradulent_rcv_tabulation(ballots, nwinners::Integer, quota, scale_results::Bool,
+                                             noisevector, iidnoise=0.)
+    ncand, nvot = size(ballots)
+    piles = [Set{Int}() for _ in 1:ncand]
     weights = ones(Float64, size(ballots, 2))
-    candsleft = BitSet(1:ncands)
+    candsleft = BitSet(1:ncand)
     candselected = Set{Int}()
     tosort = 1:nvot
     nelected = 0
-    results = zeros(Float64, ncands, 0)
+    results = zeros(Float64, ncand, 0) #The tabulation results that will ultimately be returned
+    totals = zeros(Float64, ncand) #How much support each candidate is said to have at each point
+    #The amount of support that can apparently be transfered; may differ from the actual total weight available.
+    amount_ostensibly_transferable = scale_results ? 1.0 : Float64(nvot) 
     while nelected < nwinners && nelected + length(candsleft) > nwinners
-        #stop if you've elected enough candidates or if only nwinners candidates remain un-eliminated.
-        rcv_resort!(piles, ballots, tosort, candsleft)
-        resultline = [c in candsleft ? sum([weights[i] for i in piles[c]], init=0) : c in candselected ? float(quota) : 0.0 for c in 1:ncands]
+        transfers = rcv_resort!(piles, ballots, tosort, candsleft, weights)
+        #rescale the transfers and add noise
+        if sum(weights[collect(tosort)]) > 0
+            noisytransfers = transfers .* amount_ostensibly_transferable/sum(weights[collect(tosort)])
+        else
+            noisytransfers = transfers
+        end
+        transfertotal = sum(noisytransfers)
+        cl = collect(candsleft)
+        noisytransfers[cl] += transfertotal .* (noisevector[cl] + iidnoise .* randn(length(candsleft)))
+        clamptosum!(noisytransfers, transfertotal, transfertotal)
+        #perform the remainder of the tabulation round legitmately, based on potentially bogus numbers
+        totals[cl] += noisytransfers[cl]
+        resultline = [c in candsleft ? totals[c] : c in candselected ? float(quota) : 0.0 for c in 1:ncand]
         results = hcat(results, resultline)
-        new_winners = [c for c in 1:ncands if resultline[c] >= quota && !(c in candselected)]
+        new_winners = [c for c in 1:ncand if totals[c] >= quota]
         nelected += length(new_winners)
-        if isempty(new_winners) #transfer excess from winners
-            fewestvotes = minimum(resultline[c] for c in candsleft)
-            loser = maximum(cand for cand in filter(
-                c -> resultline[c]==fewestvotes, candsleft))
+        if isempty(new_winners) #transfer from eliminated candidates
+            fewestvotes = minimum(totals[c] for c in candsleft)
+            if length(filter(c -> totals[c]==fewestvotes, candsleft)) == 0
+                print(totals, fewestvotes)
+            end
+            loser = maximum(filter(c -> totals[c]==fewestvotes, candsleft))
             tosort = piles[loser]
+            amount_ostensibly_transferable = totals[loser]
+            totals[loser] = 0.
             delete!(candsleft, loser)
-        elseif nelected < nwinners #transfer from eliminated candidates; stop tabulation if further transfers are superfluous.
+        elseif nelected < nwinners #transfer excess from winners
             tosort = Set()
+            amount_ostensibly_transferable = 0
             for c in new_winners
                 push!(candselected, c)
                 union!(tosort, piles[c])
                 delete!(candsleft,c)
+                amount_ostensibly_transferable += totals[c] - quota
+                totals[c] = 0
                 weightfactor = (resultline[c] - quota)/resultline[c]
                 for i in piles[c]
                     weights[i] *= weightfactor
                 end
             end
         end
+        #stop tabulation if further transfers are superfluous
     end
     return results
 end

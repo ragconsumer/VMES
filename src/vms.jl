@@ -39,9 +39,9 @@ end
 struct BordaCount <: RankedMethod; end
 @namevm borda = BordaCount()
 
-struct Minimax <: RankedCondorcet; end
+struct Minimax <: CondorcetCompMatOnly; end
 @namevm minimax = Minimax()
-struct RankedRobin <: RankedCondorcet; end
+struct RankedRobin <: CondorcetCompMatOnly; end
 @namevm rankedrobin = RankedRobin()
 
 @namevm smithscore = Smith(score)
@@ -247,6 +247,33 @@ function pairwisematrix(ballots_or_utils)
     return mat
 end
 
+function tabulate(ballots, method::CondorcetCompMatOnly)
+    tabulatefromcompmat(pairwisematrix(ballots), method)
+end
+
+function tabulatefromcompmat(compmat, ::Minimax)
+    ncands = size(compmat, 1)
+    minmargins = [minimum(
+        compmat[lcand, tcand] - compmat[tcand, lcand]
+        for tcand in 1:ncands if tcand != lcand)
+        for lcand in 1:ncands]
+    return [compmat minmargins]
+end
+
+function tabulatefromcompmat(compmat::Matrix{T}, ::RankedRobin) where T <: Real
+    n = size(compmat, 1)
+    wincounts = [count(>(0), compmat[lcand, tcand] - compmat[tcand, lcand] for tcand in 1:n) for lcand in 1:n]
+    mostwins = maximum(wincounts)
+    finalists = [c for c in 1:n if wincounts[c] == mostwins]
+    if length(finalists) == 1
+        return [compmat wincounts]
+    end
+    finalmargins = [(lcand ∈ finalists ?
+                    sum(compmat[lcand, tcand] - compmat[tcand, lcand] for tcand in finalists) : T(-999))
+                    for lcand in 1:n]
+    return [compmat wincounts finalmargins]
+end
+#=
 function tabulate(ballots, ::Minimax)
     ncands = size(ballots, 1)
     compmat = pairwisematrix(ballots)
@@ -271,3 +298,4 @@ function tabulate(ballots, ::RankedRobin)
                     for lcand in 1:n]
     return [compmat wincounts finalmargins]
 end
+=#

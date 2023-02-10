@@ -19,7 +19,7 @@ struct TieForTwoSpec <: ProbSpec
     winprobspec::WinProbSpec
 end
 
-function Base.:(==)(x::BasicPollSpec, y::BasicPollSpec)
+function Base.:(==)(x::PS, y::PS) where PS <: PollSpec
     x.method == y.method && x.estrat == y.estrat
 end
 
@@ -31,7 +31,8 @@ function Base.:(==)(x::TieForTwoSpec, y::TieForTwoSpec)
     x.winprobspec == y.winprobspec
 end
 
-function Base.hash(x::BasicPollSpec, h::UInt)
+function Base.hash(x::PS, h::UInt) where PS <: PollSpec
+    h = hash(PS, h)
     h = hash(x.method, h)
     h = hash(x.estrat, h)
     return h
@@ -149,7 +150,7 @@ Must return a set.
 """
 neededinfo(strat::VoterStrategy, ::VotingMethod) = Set([strat.neededinfo])
 neededinfo(::BlindStrategy, ::VotingMethod) = Set()
-neededinfo(spec::BasicPollSpec) = neededinfo(spec.estrat, spec.method)
+neededinfo(spec::PollSpec) = neededinfo(spec.estrat, spec.method)
 neededinfo(spec::WinProbSpec) = Set([spec.pollspec])
 neededinfo(spec::TieForTwoSpec) = Set([spec.winprobspec])
 
@@ -175,3 +176,33 @@ The factor that all poll results must be multipied by to lie in [0, 1].
 pollscalefactor(::ApprovalMethod, ballots) = 1/size(ballots, 2)
 pollscalefactor(method::ScoringMethod, ballots) = 1/(method.maxscore*size(ballots, 2))
 pollscalefactor(::BordaCount, ballots) = 1/((size(ballots,1) - 1)*size(ballots, 2))
+
+"""
+    clamptosum!(a::AbstractArray{<:Real}, total=1, high=1)
+
+Minimally modify the array such that sum(a) = total, minimum(a)>=0, and maximum(a)<=high.
+"""
+function clamptosum!(a::AbstractArray{Float64}, total=1, high=1)
+    #first deal with negative values
+    if all(x <= 0 for x in a)
+        a .= total/length(a)
+        return a
+    end
+    clamp!(a, 0, Inf)
+    a .*= total/sum(a)
+    #repeatedly clamp the excess and rescale everything else, until there's nothing to clamp.
+    #each iteration begins with sum(a) == total, up to floating point errors.
+    while maximum(a) > high
+        highvals = filter(>=(high), a)
+        nhigh = length(highvals)
+        excess = sum(highvals) - high*nhigh
+        scalefactor = 1 + excess/(total - sum(highvals))
+        clamp!(a, 0, high)
+        for i in eachindex(a)
+            if a[i] < high
+                a[i] *= scalefactor
+            end
+        end
+    end
+    return a
+end
