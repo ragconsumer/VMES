@@ -151,11 +151,14 @@ end
 
 @testset "Viability-Aware Strategies" begin
     @test vote([0,1,5], PluralityVA(nothing), plurality, [.49,.49,.02]) == [0,1,0]
+    @test vote([0,1,5], PluralityVA(nothing), pluralitytop2, [.49,.49,.02]) == [0,0,1,0,1,2]
     @test vote([0,1,5], PluralityVA(nothing), plurality, [.05,.9,.05]) == [0,0,1]
     @test vote([0,1,5], ApprovalVA(nothing), approval, [.49,.49,.02]) == [0,1,1]
+    @test vote([0,1,5], ApprovalVA(nothing), approvaltop2, [.49,.49,.02]) == [0,0,1,0,1,2]
     @test vote([0,1,5], ApprovalVA(nothing), approval, [.05,.9,.05]) == [0,0,1]
     @test vote([3,2,1,0], BordaVA(nothing), borda, [.05, .4, .4, .05]) == [2, 3, 0, 1]
     @test vote([3,2,1,0], IRVVA(nothing, 0), irv, [.05, .4, .4, .05]) == [2, 3, 1, 0]
+    @test VMES.top3values([0,1,3], [.5,.4,.1]) ≈ [-.08, -0.02, 0.1]
     sc, rc = VMES.starvacoeffs([0,1,3], hon, [.5,.4,.1])
     @test isapprox(sc, [-.08, -0.02, 0.1], atol=1e-10)
     @test isapprox(rc, [0 0.2 0.15
@@ -474,7 +477,7 @@ end
                               11 6 11 0] ./ 15
         @test poll[:,5] == [0,2,2,2]
         @test poll[:,6] ≈ [-999, -2/15, -2/15, 4/15]
-        end
+    end
 end
 
 @testset "Metrics" begin
