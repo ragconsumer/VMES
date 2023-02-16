@@ -57,13 +57,18 @@ strats and methods must be vectors of the same length.
 """
 function administerpolls(electorate, (strats, methods),
                         correlatednoise::Number, iidnoise::Number, samplesize=nothing)
+    noisevector = correlatednoise .* randn(size(electorate,1))
+    administerpolls(electorate, (strats, methods), noisevector, iidnoise, samplesize)
+end
+
+function administerpolls(electorate, (strats, methods),
+                         noisevector::Vector{Float64}, iidnoise::Number, samplesize=nothing)
     infodict = Dict()
     if samplesize === nothing
         respondants = nothing
     else
         respondants = rand(1:size(electorate,2), samplesize) #drawing WITH replacement
     end
-    noisevector = correlatednoise .* randn(size(electorate,1))
     for i in eachindex(strats, methods)
         for spec in neededinfo(strats[i], methods[i])
             addinfo!(infodict, electorate, spec, noisevector, iidnoise, respondants)

@@ -93,7 +93,8 @@ function optionally_fradulent_rcv_tabulation(ballots, nwinners::Integer, quota, 
         end
         transfertotal = sum(noisytransfers)
         cl = collect(candsleft)
-        noisytransfers[cl] += transfertotal .* (noisevector[cl] + iidnoise .* randn(length(candsleft)))
+        noisytransfers[cl] += transfertotal .* (noisevector[cl] + (iidnoise == 0 ?
+        zeros(Float64, length(cl)) : iidnoise .* randn(length(candsleft))))
         clamptosum!(noisytransfers, transfertotal, transfertotal)
         #perform the remainder of the tabulation round legitmately, based on potentially bogus numbers
         totals[cl] += noisytransfers[cl]

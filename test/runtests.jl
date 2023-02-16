@@ -182,22 +182,26 @@ end
             0  0  0  0  0  0  0  2  2  2  2]
     @test ElectorateStrategy(5, [hon], [5]) == ElectorateStrategy(5, [hon], [5])
     es = ElectorateStrategy(4, [hon, abstain, bullet], [4,2,5])
-    @test VMES.strats_and_users_in_range(es, 1, 1) == ([hon], [1])
-    @test VMES.strats_and_users_in_range(es, 11, 11) == ([bullet], [1])
-    @test VMES.strats_and_users_in_range(es, 1, 4) == ([hon], [4])
-    @test VMES.strats_and_users_in_range(es, 1, 5) == ([hon, abstain], [4, 1])
-    @test VMES.strats_and_users_in_range(es, 5, 6) == ([abstain], [2])
-    @test VMES.strats_and_users_in_range(es, 4, 9) == ([hon, abstain, bullet], [1,2,3])
+    @test VMES.stratatindex(es, 1) == hon
+    @test VMES.stratatindex(es, 6) == abstain
+    @test VMES.stratatindex(es, 7) == bullet
+    @test VMES.stratatindex(es, 11) == bullet
+    @test VMES.strats_and_users_in_range(es, 1, 1) == ([hon], [(1,1)])
+    @test VMES.strats_and_users_in_range(es, 11, 11) == ([bullet], [(11,11)])
+    @test VMES.strats_and_users_in_range(es, 1, 4) == ([hon], [(1,4)])
+    @test VMES.strats_and_users_in_range(es, 1, 5) == ([hon, abstain], [(1,4), (5,5)])
+    @test VMES.strats_and_users_in_range(es, 5, 6) == ([abstain], [(5,6)])
+    @test VMES.strats_and_users_in_range(es, 4, 9) == ([hon, abstain, bullet], [(4,4),(5,6),(7,9)])
     template = ESTemplate(5, [[(hon, 1,10), (bullet, 11,15), (abstain, 16,16)], [(approvalvatemplate,1,3)]])
     poll_es = ElectorateStrategy(5, [hon, bullet, abstain], [10, 5, 1])
     vastrat = ApprovalVA(VMES.WinProbSpec(VMES.BasicPollSpec(approval, poll_es), 0.5))
     estarget = ElectorateStrategy(5, [vastrat, hon, bullet, abstain], [3,7,5,1])
     es =  esfromtemplate(template, 0.5)
-    @test es.stratusers == [3,7,5,1]
+    @test es.stratusers == [(1,3),(4,10),(11,15),(16,16)]
     @test es.stratlist[2:end] == [hon, bullet, abstain]
     @test typeof(es.stratlist[1]) == ApprovalVA
     @test es.stratlist[1].neededinfo.uncertainty == 0.5
-    @test es.stratlist[1].neededinfo.pollspec.estrat.stratusers == [10, 5, 1]
+    @test es.stratlist[1].neededinfo.pollspec.estrat.stratusers == [(1,10),(11,15),(16,16)]
     @test es.stratlist[1].neededinfo.pollspec.estrat.stratlist == [hon, bullet, abstain]
     @test es == estarget
     template = VMES.ApprovalWinProbTemplate(VMES.IRVVA, 0.1,VMES.TopMeanThreshold(0.5),[0.0])
@@ -490,6 +494,82 @@ end
     qs, highs, avgs = VMES.mw_winner_quality(electorate, [[1,2,3],[1,2,4],[1,3,4],[2,3,4]], 3)
     @test highs == [5; 5; 10]
     @test qs == [1.5; 0; 0; 1.5;; 46/12;30/12;36/12;26/12;; 10;7.5;9;5]
+
+    @testset "CID" begin
+        @test VMES.normalizedUtilDeviation([0,10],1) == -1
+        e = [0;0.9;1;;0;0.9;1;;0;0.9;1]
+        es = ElectorateStrategy(abstain, 2, 2, 2)
+        @test VMES.cidrevote(e, [5,1,4], es, approval, Dict(nothing=>nothing)) == [0;0;1;;0;0;0;;0;1;1]
+        e = [0;0.9;1;;0;0.9;1;;5;0.9;1]
+        @test VMES.cidrevote(e, [5,1,4], es, approval, Dict(nothing=>nothing)) == [0;0;1;;0;0;0;;1;0;0]
+        ic = [0;0;;5;0;;0;0]
+        VMES.updateincentivecounts!(ic, 1, 1, [1,3], [1,2], 1, 1, (false, false, false, false))
+        @test ic == [0;0;;5;0;;0;0]
+        VMES.updateincentivecounts!(ic, 1, 1, [1,3], [1,2], 1, 1, (true, true, true, true))
+        @test ic == [0;0;;5;0;;0;0]
+        VMES.updateincentivecounts!(ic, 1, 1, [1,3], [1,2], 3, 1, (false, true, true, true))
+        @test ic == [0;0;;5;0;;0;0]
+        VMES.updateincentivecounts!(ic, 1, 1, [1,3], [1,2], 3, 1, (true, false, false, false))
+        @test ic == [1;0;;5;0;;0;0]
+        VMES.updateincentivecounts!(ic, 1, 1, [1,3], [1,2], 2, 1, (true, true, true, false))
+        @test ic == [1;0;;5;0;;0;0]
+        VMES.updateincentivecounts!(ic, 1, 1, [1,3], [1,2], 2, 1, (false, false, false, true))
+        @test ic == [0;0;;5;0;;0;0]
+        VMES.updateincentivecounts!(ic, 1, 1, [1,3], [1,2], 2, -1, (true, false, true, true))
+        @test ic == [0;0;;5;0;;0;0]
+        VMES.updateincentivecounts!(ic, 2, 3, [1,3], [1,2], 2, -1, (false, true, false, false))
+        @test ic == [0;0;;5;0;;0;1]
+        VMES.updateincentivecounts!(ic, 1, 2, [1,3], [1,2], 3, -1, (true, true, false, true))
+        @test ic == [0;0;;5;0;;0;1]
+        VMES.updateincentivecounts!(ic, 1, 2, [1,3], [1,2], 3, -1, (false, false, true, false))
+        @test ic == [0;0;;4;0;;0;1]
+        e = reduce(hcat, [k,1,0] for k in 1:12)
+        s = VMES.normalizedUtilDeviation
+        @test VMES.assignbuckets(e,1,4,3,s) == [1 4 7 10
+                                                2 5 8 11
+                                                3 6 9 12]
+        e = reduce(hcat, [-k,1,0] for k in 1:12)
+        @test VMES.assignbuckets(e,1,4,3,s) == [12 9 6 3
+                                                11 8 5 2
+                                                10 7 4 1]
+        ic = [0;0;;0;0;;0;0]
+        approvalbaseballots = [1 1 0
+                               1 1 1
+                               0 0 0]
+        irvbaseballots = [2 0 1
+                          1 1 2
+                          0 2 0]
+        baseballotsets = [approvalbaseballots, irvbaseballots]
+        basewinnersets = [[2],[2]]
+        VMES.innercidbasic!(ic, 1,
+                            [5;1;0;;], 1, [1],
+                            baseballotsets, [[2],[2]], Dict(nothing=>nothing), 
+                            [approval, irv], [ElectorateStrategy(hon, 3), ElectorateStrategy(hon, 3)],
+                            1, 1, (true, true, true, true))
+        @test ic == [1;0;;0;0;;0;0]
+        @test baseballotsets == [[1;1;0;;1;1;0;;0;1;0], [2;1;0;;0;1;2;;1;2;0]]
+        VMES.innercidbasic!(ic, 2,
+                            [5;1;0;;], 1, [2],
+                            baseballotsets, [[2],[2]], Dict(nothing=>nothing), 
+                            [approval, irv], [ElectorateStrategy(hon, 3), ElectorateStrategy(hon, 3)],
+                            1, 1, (true, true, true, true))
+        @test ic == [0;-1;;0;0;;0;0]
+        e =[2;1;0;;2;1;0;;0.9;1;1.0001]
+        ic = [0;0;;0;0;;0;0]
+        vaes = esfromtemplate(ESTemplate(3,[[(hon, 1, 3)], [(pluralityvatemplate,1,2)]]), 0.1)
+        VMES.innercidnewpolls!(ic, 1, [1.9,1,1.0001],1,[3],e,[[2], [1]],[-0.4, 0.4, 0], 0.0, [plurality, minimax],
+            [vaes, ElectorateStrategy(hon,3)], 1, 1, (true, true, true, true))
+        @test ic == [1;0;;0;0;;0;0]
+        @test e == [2;1;0;;2;1;0;;0.9;1;1.0001]
+
+        #test calc_cid
+        methods = [plurality, minimax]
+        estrats = [ElectorateStrategy(hon, 3), ElectorateStrategy(hon, 3)]
+        electorate = [1.01;1;0;;1;2;0;;0;0.01;5]
+        df = calc_cid(10, VMES.TestModel(electorate), methods, estrats, 3, 3, 1, 1)
+        @test df.CID == [0,1.5,1.5,3,0,0]
+        @test df.Total == [0,10,10,20,0,0]
+    end
 
     @testset "esif" begin
         strats = [hon, abstain, bullet, ExpScale(3), ExpScale(3.1)]

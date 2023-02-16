@@ -18,7 +18,7 @@ The uncertainty is the standard deviation (of the mean) of the polls.
 Algorithm originally written in Python by Jameson Quinn.
 """
 function betaprobs(polls, uncertainty)
-    clampedpolls = clamp.(polls, 0.01, 0.99)
+    clampedpolls = reshape(clamp.(polls, 0.01, 0.99), length(polls))
     betasize = margintobetasize(uncertainty)
     betas = [Distributions.Beta(betasize*p, betasize*(1-p)) for p in clampedpolls]
     return multi_beta_probs_of_highest(betas)

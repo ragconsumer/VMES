@@ -32,7 +32,7 @@ struct ApprovalWinProbTemplate <: VoterStratTemplate
     stratargs::Vector{Any}
 end
 
-irvvatemplate = ApprovalWinProbTemplate(IRVVA, 0.05, hon, [0.0])
+irvvatemplate = ApprovalWinProbTemplate(IRVVA, 0.05, TopMeanThreshold(0.1), [0.0])
 
 """
 Contains the information needed to conventiently construct an electorate strategy.
@@ -66,15 +66,15 @@ function esfromtemplate(estemplate::ESTemplate, pollinguncertainty::Float64=0.1)
         sort!(vstemplatelist, by=r->r[2])
         lastend = 0
         stratlist = Vector{VoterStrategy}()
-        userslist = Vector{Int}()
+        userslist = Vector{Tuple{Int,Int}}()
         for (template, startindex, endindex) in vstemplatelist
             append_estrat_specs!(stratlist, userslist, lastroundestrat, lastend+1, startindex-1)
             push!(stratlist, vsfromtemplate(template, lastroundestrat, pollinguncertainty))
-            push!(userslist, 1 + endindex - startindex)
+            push!(userslist, (startindex, endindex))
             lastend = endindex
         end
         if lastroundestrat !== nothing
-            append_estrat_specs!(stratlist, userslist, lastroundestrat, lastend+1, sum(lastroundestrat.stratusers))
+            append_estrat_specs!(stratlist, userslist, lastroundestrat, lastend+1, lastroundestrat.stratusers[end][2])
         end
         lastroundestrat = ElectorateStrategy(estemplate.flexible_strategists, stratlist, userslist)
     end
@@ -119,31 +119,28 @@ function append_estrat_specs!(stratlist::Vector, userslist::Vector,
     end
 end
 append_estrat_specs!(::Vector, ::Vector, ::Nothing, ::Int, ::Int) = nothing #do nothing if there's no estrat
+
 """
     strats_and_users_in_range(estrat::ElectorateStrategy, beginindex, endindex)
 
 Determine the strategies and numbers of voters using them between beginindex and endindex.
 
-Returns (strats, usercounts), where strats is a vector of voter strategies
-and usercounts is a vector giving the number of voters within the range using
-each strategy.
+Returns (strats, user_ranges), where strats is a vector of voter strategies and
+user_ranges is a vector of tuples of the minimum and maximum indicies of voters who use a strat.
 """
 function strats_and_users_in_range(estrat::ElectorateStrategy, beginindex, endindex)
     #get to beginindex and find the strategy there
-    voteri = 1 #the first voter to use a strategy
     strati = 1 #the current index within estrat.stratusers and estrat.stratlist
-    while voteri + estrat.stratusers[strati] - 1 < beginindex
-        voteri += estrat.stratusers[strati]
+    while estrat.stratusers[strati][2] < beginindex
         strati += 1
     end
-    usercounts = Vector{Int}([min(voteri + estrat.stratusers[strati], endindex + 1) - beginindex])
+    user_ranges = Vector{Tuple{Int,Int}}([(beginindex, min(endindex, estrat.stratusers[strati][2]))])
     strats = Vector{VoterStrategy}([estrat.stratlist[strati]])
     #loop through the strategies used by voters in the interval
-    while voteri + estrat.stratusers[strati] <= endindex
-        voteri += estrat.stratusers[strati]
+    while estrat.stratusers[strati][2] < endindex
         strati += 1
-        push!(usercounts, min(estrat.stratusers[strati], endindex + 1 - voteri))
+        push!(user_ranges, (estrat.stratusers[strati][1], min(endindex, estrat.stratusers[strati][2])))
         push!(strats, estrat.stratlist[strati])
     end
-    return strats, usercounts
+    return strats, user_ranges
 end

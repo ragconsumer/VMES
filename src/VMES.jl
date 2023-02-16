@@ -11,12 +11,13 @@ export ElectorateStrategy, castballots
 export ESTemplate, BasicPollStratTemplate, esfromtemplate
 export BasicWinProbTemplate, approvalvatemplate, pluralityvatemplate, starvatemplate, irvvatemplate, esfromtemplate
 export make_electorate, ic, ImpartialCulture, DimModel, DCCModel, dcc, RepDrawModel
-export calc_vses, calc_esif
+export calc_vses, calc_esif, calc_cid
 
 
 import Statistics, Random
 import Distributions
 import Optim
+using Gadfly
 using DataFrames
 
 include("macros.jl")
@@ -29,7 +30,9 @@ include("fancypolls.jl")
 include("votermodels.jl")
 include("vse.jl")
 include("esif.jl")
+include("cid.jl")
 include("fixedelectorates.jl")
 include("metrictools.jl")
+include("charts.jl")
 
 end

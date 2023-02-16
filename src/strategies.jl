@@ -56,7 +56,11 @@ function Base.show(io::IO, s::S) where {S <: BlindStrategy}
 end
 
 function Base.show(io::IO, s::S) where {S <: InformedStrategy}
-    print(io, S, [getfield(s, fname) for fname in fieldnames(S) if fname != :neededinfo])
+    if fieldcount(S) > 1
+        print(io, S, [getfield(s, fname) for fname in fieldnames(S) if fname != :neededinfo])
+    else
+        print(io, S)
+    end
 end
 
 """
