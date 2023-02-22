@@ -17,7 +17,7 @@ function vse_ncand_chart(df::DataFrame)
     df2 = copy(df)
     df2.Method = string.(df2.Method)
     plot(df2, x=:ncand, y=:VSE, color=:Method, Geom.point, Geom.line, Guide.xlabel("Number of candidates"),
-        Guide.colorkey(title="Method", labels=["Plurality", "Plurality Top 2","Approval","Approval Top 2","RCV","STAR","Ranked Robin"]))
+        Guide.colorkey(title="Method", labels=["Choose One", "Choosen One + Top 2","Approval","Approval Top 2","RCV","STAR","Ranked Robin"]))
 end
 
 """
@@ -31,7 +31,7 @@ function vse_bullet_chart(df::DataFrame)
     df2.bullets = bulletfraction.(df2.estrat,df2.nvot)
     plot(df2, x=:bullets, y=:VSE, color=:Method, Geom.point, Geom.line,
         Guide.xlabel("% non-strategic bullet voters"),
-        Guide.colorkey(title="Method", labels=["Plurality", "Plurality Top 2","Approval","Approval Top 2","RCV","STAR","Ranked Robin"]))
+        Guide.colorkey(title="Method", labels=["Choose One", "Choosen One + Top 2","Approval","Approval Top 2","RCV","STAR","Ranked Robin"]))
 end
 
 function bulletfraction(estratstr::String, nvot::Int)
@@ -59,7 +59,7 @@ function vse_va_chart(df::DataFrame)
     df2.vas = vafraction.(df2.estrat,df2.nvot)
     plot(df2, x=:vas, y=:VSE, color=:Method, Geom.point, Geom.line,
         Guide.xlabel("% viability-aware"),
-        Guide.colorkey(title="Method", labels=["Plurality", "Plurality Top 2","Approval","Approval Top 2","RCV","STAR"]))
+        Guide.colorkey(title="Method", labels=["Choose One", "Choosen One + Top 2","Approval","Approval Top 2","RCV","STAR"]))
 end
 
 function vafraction(estratstr::String, nvot::Int)
@@ -82,7 +82,8 @@ function cidmethodchart(df::DataFrame)
          Guide.xlabel("Voter's support for candidate"),
          Guide.ylabel("Candidate's incentive to appeal to voter"),
          Guide.colorkey(title="Method", labels=[
-            "Plurality", "Plurality Top 2","Approval","Approval Top 2","RCV","STAR","Ranked Robin"]))
+            "Choose One", "Choosen One + Top 2","Approval","Approval + Top 2","Ranked Choice","Ranked Robin","STAR"]),
+         Scale.color_discrete_manual("#D55E00","#E69F00","#0072B2","#56B4E9","#009E73","#CC79A7","#F0E442"))
 end
 
 function cidyticklabel(y::Real)
@@ -98,3 +99,32 @@ function cidyticklabel(y::Real)
 end
 
 cidxticklabel(x::Real) = string(round(Int, x*100), "%")
+
+"""
+cidlist = ([VMES.calc_cid(1000, VMES.dcc,
+    [VMES.plurality, VMES.pluralitytop2, VMES.approval, VMES.approvaltop2, VMES.rcv, VMES.rankedrobin, VMES.star],
+    repeat([VMES.ElectorateStrategy(VMES.hon, 72)], 7), 24, m) for m in 2:10])
+bigdf = reduce(vcat, cidlist)
+"""
+function cid_cdf_ncand_chart(df, threshold)
+    influencedf = influence_cdf(df, threshold)
+    influencedf.Method = string.(influencedf.Method)
+    influencedf.estrat = string.(influencedf[!,"Electorate Strategy"])
+    plot(influencedf, x=:ncand, y="CS$threshold", color=:Method, Geom.point, Geom.line,
+         Guide.xlabel("Number of candidates"),
+         #Guide.ylabel("Incentive to appeal to least supportive $(Int(threshold*100)) of voters"),
+         Coord.cartesian(xmin=minimum(influencedf.ncand)), Guide.colorkey(title="Method", labels=[
+         "Choose One", "Choosen One + Top 2","Approval","Approval + Top 2","Ranked Choice","Ranked Robin","STAR"]),
+         Scale.color_discrete_manual("#D55E00","#E69F00","#0072B2","#56B4E9","#009E73","#CC79A7","#F0E442"))
+end
+
+function cid_distance_ncand_chart(df, distance_metric)
+    distancedf = distance_from_uniform(distance_metric, df)
+    distancedf.Method = string.(distancedf.Method)
+    distancedf.estrat = string.(distancedf[!,"Electorate Strategy"])
+    plot(distancedf, x=:ncand, y=:DFU, color=:Method, Geom.point, Geom.line,
+         Guide.xlabel("Number of candidates"), Guide.ylabel("Deviation from uniform incentives"),
+         Coord.cartesian(xmin=minimum(distancedf.ncand)), Guide.colorkey(title="Method", labels=[
+         "Choose One", "Choosen One + Top 2","Approval","Approval + Top 2","Ranked Choice","Ranked Robin","STAR"]),
+         Scale.color_discrete_manual("#D55E00","#E69F00","#0072B2","#56B4E9","#009E73","#CC79A7","#F0E442"))
+end

@@ -48,7 +48,7 @@ end
 
 Base.size(e::SeededElectorate) = Base.size(e.data)
 Base.getindex(e::SeededElectorate, I::Vararg{Int,N}) where {N} = e.data[I...]
-Base.setindex!(e::SeededElectorate, v::Float64, I::Vararg{Int,N}) where N = (e.data[I] = v)
+Base.setindex!(e::SeededElectorate, v::Float64, I::Vararg{Int,N}) where N = (e.data[I...] = v)
 getseed(e::SeededElectorate) = e.seed
 getseed(::Any) = 0
 

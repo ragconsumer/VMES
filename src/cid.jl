@@ -1,5 +1,18 @@
-include("cidsorters.jl")
+include("cidtools.jl")
 
+"""
+    calc_cid(niter::Int,
+                  vmodel::VoterModel,
+                  methods::Vector{<:VotingMethod},
+                  estrats::Vector{ElectorateStrategy},
+                  nbucket::Int, ncand::Int, nwinners::Int=1,
+                  votersperbucket::Int=3, util_change::Float64=0.05,
+                  sorter=normalizedUtilDeviation, pollafterpert=false,
+                  which_changes=(true, true, true, true),
+                  correlatednoise::Float64=0.1, iidnoise::Float64=0.0)
+
+Determine the Candidate Incentive Distributions of the given methods and estrats.
+"""
 function calc_cid(niter::Int,
                   vmodel::VoterModel,
                   methods::Vector{<:VotingMethod},
@@ -9,14 +22,20 @@ function calc_cid(niter::Int,
                   sorter=normalizedUtilDeviation, pollafterpert=false,
                   which_changes=(true, true, true, true),
                   correlatednoise::Float64=0.1, iidnoise::Float64=0.0)
+    ITER_PER_SUM = 1000
     nmethod = length(methods)
     entries = Array{Int, 3}(undef, nmethod, nbucket, niter)
-    Threads.@threads for i in 1:niter
-        entries[:, :, i] = one_cid_iter(vmodel, methods, estrats, nbucket, ncand, nwinners,
-            votersperbucket, util_change, sorter, pollafterpert, which_changes,
-            correlatednoise, iidnoise)
+    counts = zeros(Int, nmethod, nbucket)
+    iterleft = niter
+    for _ in 1:ceil(Int, niter/ITER_PER_SUM)
+        Threads.@threads for i in 1:min(iterleft, ITER_PER_SUM)
+            entries[:, :, i] = one_cid_iter(vmodel, methods, estrats, nbucket, ncand, nwinners,
+                votersperbucket, util_change, sorter, pollafterpert, which_changes,
+                correlatednoise, iidnoise)
+        end
+        iterleft -= ITER_PER_SUM
+        counts += dropdims(sum(entries, dims=3), dims=3)
     end
-    counts = dropdims(sum(entries, dims=3), dims=3)
     totalincentives = sum(counts, dims=2)
     cids = Matrix{Float64}(undef, nmethod, nbucket)
     df = DataFrame()
@@ -51,7 +70,7 @@ function calc_cid(niter::Int,
                   methods::Vector{<:VotingMethod},
                   estrats::Vector,
                   nbucket::Int, ncand::Int, nwinners::Int=1,
-                  votersperbucket::Int=3, util_change::Float64=0.05,
+                  votersperbucket::Int=3, util_change::Float64=0.1,
                   sorter=normalizedUtilDeviation, pollafterpert=false,
                   which_changes=(true, true, true, true),
                   correlatednoise::Float64=0.1, iidnoise::Float64=0.0)
@@ -76,7 +95,7 @@ function one_cid_iter(vmodel::VoterModel,
                       methods::Vector{<:VotingMethod},
                       estrats::Vector{ElectorateStrategy},
                       nbucket::Int, ncand::Int, nwinners::Int=1,
-                      votersperbucket::Int=3, util_change::Float64=0.05,
+                      votersperbucket::Int=3, util_change::Float64=0.1,
                       sorter=normalizedUtilDeviation, pollafterpert=false,
                       which_changes=(true, true, true, true),
                       correlatednoise::Float64=0.1, iidnoise::Float64=0.0)

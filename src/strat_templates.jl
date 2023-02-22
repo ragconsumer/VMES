@@ -11,14 +11,23 @@ abstract type VoterStratTemplate end
 
 struct BasicPollStratTemplate <: VoterStratTemplate
     basestrat::Union{DataType, Function}
+    extrauncertainty::Float64
     method::VotingMethod
     stratargs::Vector{Any}
+end
+function BasicPollStratTemplate(basestrat::Union{DataType, Function}, method::VotingMethod, stratargs::Vector)
+    BasicPollStratTemplate(basestrat, 0.0, method, stratargs)
 end
 
 struct BasicWinProbTemplate <: VoterStratTemplate
     basestrat::Union{DataType, Function}
+    extrauncertainty::Float64
     method::VotingMethod
     stratargs::Vector{Any}
+end
+
+function BasicWinProbTemplate(basestrat::Union{DataType, Function}, method::VotingMethod, stratargs::Vector)
+    BasicWinProbTemplate(basestrat, 0.0, method, stratargs)
 end
 
 approvalvatemplate = BasicWinProbTemplate(ApprovalVA, approval, [])
