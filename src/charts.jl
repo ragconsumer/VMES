@@ -21,7 +21,7 @@ function vse_ncand_chart(df::DataFrame)
 end
 
 """
-stratdf = VMES.calc_vses(10000, VMES.dcc, repeat([VMES.plurality, VMES.pluralitytop2, VMES.approval, VMES.approvaltop2, VMES.rcv, VMES.star, VMES.rankedrobin], 21), reduce(vcat, [repeat([VMES.ElectorateStrategy(VMES.hon, 0, 1000-k, k)], 7) for k in 0:50:1000]), 1000, 6)
+stratdf = VMES.calc_vses(10000, VMES.dcc, repeat([VMES.plurality, VMES.pluralitytop2, VMES.approval, VMES.approvaltop2, VMES.rcv, VMES.star, VMES.rankedrobin], 21), reduce(vcat, [repeat([VMES.ElectorateStrategy(VMES.hon, 0, 1000-k, k)], 7) for k in 0:50:1000]), 1000, 5)
 """
 
 function vse_bullet_chart(df::DataFrame)
@@ -44,12 +44,12 @@ end
 vadf = VMES.calc_vses(100, VMES.dcc,
     repeat([VMES.plurality, VMES.pluralitytop2, VMES.approval, VMES.approvaltop2, VMES.rcv, VMES.star], 21),
     reduce(vcat, [reduce(vcat, [VMES.ESTemplate(0, [[(VMES.hon,1,100)], [(VMES.pluralityvatemplate, 1, k)]]),
-        VMES.ESTemplate(0, [[(VMES.hon,1,100)], [(VMES.pluralityvatemplate, 1, k)]]),
+        VMES.ESTemplate(0, [[(VMES.hon,1,100)], [(VMES.pluralitytop2vatemplate, 1, k)]]),
         VMES.ESTemplate(0, [[(VMES.hon,1,100)], [(VMES.approvalvatemplate, 1, k)]]),
-        VMES.ESTemplate(0, [[(VMES.hon,1,100)], [(VMES.approvalvatemplate, 1, k)]]),
+        VMES.ESTemplate(0, [[(VMES.hon,1,100)], [(VMES.approvaltop2vatemplate, 1, k)]]),
         VMES.ESTemplate(0, [[(VMES.hon,1,100)], [(VMES.irvvatemplate, 1, k)]]),
         VMES.ESTemplate(0, [[(VMES.hon,1,100)], [(VMES.starvatemplate, 1, k)]])]) for k in 0:5:100]),
-        100, 6)
+        100, 5)
 """
 
 function vse_va_chart(df::DataFrame)
@@ -59,7 +59,9 @@ function vse_va_chart(df::DataFrame)
     df2.vas = vafraction.(df2.estrat,df2.nvot)
     plot(df2, x=:vas, y=:VSE, color=:Method, Geom.point, Geom.line,
         Guide.xlabel("% viability-aware"),
-        Guide.colorkey(title="Method", labels=["Choose One", "Choosen One + Top 2","Approval","Approval Top 2","RCV","STAR"]))
+        Guide.colorkey(title="Method", labels=[
+            "Choose One", "Choosen One + Top 2","Approval","Approval + Top 2","Ranked Choice","STAR"]),
+        Scale.color_discrete_manual("#D55E00","#E69F00","#0072B2","#56B4E9","#009E73","#F0E442"))
 end
 
 function vafraction(estratstr::String, nvot::Int)
@@ -70,7 +72,7 @@ end
 """
 df = VMES.calc_cid(100, VMES.dcc,
     [VMES.plurality, VMES.pluralitytop2, VMES.approval, VMES.approvaltop2, VMES.rcv, VMES.star, VMES.rankedrobin],
-    repeat([VMES.ElectorateStrategy(VMES.hon, 72)], 7), 24, 6)
+    repeat([VMES.ElectorateStrategy(VMES.hon, 72)], 7), 24, 5)
 """
 function cidmethodchart(df::DataFrame)
     df = copy(df)

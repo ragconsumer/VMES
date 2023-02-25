@@ -16,7 +16,7 @@ export util_pert_on_score_stats, total_variation_distance_from_uniform, earth_mo
 
 
 import Statistics, Random
-import Distributions
+import Distributions, LogExpFunctions
 import Optim
 using Gadfly
 using DataFrames
