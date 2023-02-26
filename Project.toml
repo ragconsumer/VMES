@@ -19,6 +19,7 @@ DataFrames = "1"
 Distributions = "0.25"
 LogExpFunctions = "0.3"
 Optim = "1"
+ProfileView = "1"
 julia = "1"
 
 [extras]
