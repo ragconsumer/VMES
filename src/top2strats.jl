@@ -15,29 +15,24 @@ function vote(voter, strat::InformedStrategy, method::Top2Method, infodict::Dict
     return [r1ballot;runoffprefs]
 end
 
-"""
-    top2values(v, p)
 
-Determine how good it is to vote for each candidate to get them into the top two.
-
-v is the voter, p is winprobs
-"""
-function top3values(v, p)
-    values = Vector{Float64}(undef, length(v))
-    for i in eachindex(v, p)
-        values[i] = sum((v[i]-v[j])*p[i]*p[j]*(1-p[i]-p[j]) for j in eachindex(v, p))
-    end
-    return values
+struct PluralityTop2VA <: InformedStrategy
+    neededinfo
 end
 
-function vote(voter, ::ApprovalVA, method::Top2Method, winprobs)
-    values = top3values(voter, winprobs)
-    [[value > 0 ? topballotmark(voter, method.basemethod) : 0 for value in values]; vote(voter, hon, irv)]
+struct ApprovalTop2VA <: InformedStrategy
+    neededinfo
 end
 
-function vote(voter, ::PluralityVA, method::Top2Method, winprobs)
-    values = top3values(voter, winprobs)
+function vote(voter, ::PluralityTop2VA, method::Top2Method, tie2probs)
+    expectedvalue = sum(voter[i]*tie2probs[i] for i in eachindex(voter, tie2probs))
     ballot = zeros(Int, length(voter))
-    ballot[argmax(values)] = topballotmark(voter, method.basemethod)
+    ballot[argmax((voter[i]-expectedvalue)*tie2probs[i] for i in eachindex(voter, tie2probs))] = topballotmark(voter, method)
     return [ballot; vote(voter, hon, irv)]
+end
+
+function vote(voter, ::ApprovalTop2VA, method::Top2Method, tie2probs)
+    expectedvalue = sum(voter[i]*tie2probs[i] for i in eachindex(voter, tie2probs))
+    firstballot = [util >=expectedvalue ? topballotmark(voter, method) : 0 for util in voter]
+    return [firstballot; vote(voter, hon, irv)]
 end

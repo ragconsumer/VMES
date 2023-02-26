@@ -11,11 +11,12 @@ export ElectorateStrategy, castballots
 export ESTemplate, BasicPollStratTemplate, esfromtemplate
 export BasicWinProbTemplate, approvalvatemplate, pluralityvatemplate, starvatemplate, irvvatemplate, esfromtemplate
 export make_electorate, ic, ImpartialCulture, DimModel, DCCModel, dcc, RepDrawModel
-export calc_vses, calc_esif, calc_cid
+export calc_vses, calc_esif, calc_cid, influence_cdf, distance_from_uniform
+export util_pert_on_score_stats, total_variation_distance_from_uniform, earth_movers_distance_from_uniform
 
 
 import Statistics, Random
-import Distributions
+import Distributions, LogExpFunctions
 import Optim
 using Gadfly
 using DataFrames

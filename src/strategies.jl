@@ -111,6 +111,7 @@ end
 topballotmark(_, ::ApprovalMethod) = 1
 topballotmark(_, method::ScoringMethod) = method.maxscore
 topballotmark(voter, ::RankedMethod) = length(voter) - 1
+topballotmark(voter, method::Top2Method) = topballotmark(voter, method.basemethod)
 
 function vote(voter, ::BulletVote, method::OneRoundMethod)
     ballot = zeros(Int, length(voter))

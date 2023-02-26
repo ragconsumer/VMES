@@ -1,5 +1,6 @@
 using VMES
 using Test
+using DataFrames
 import Statistics, Distributions, Random
 
 @testset "Voter Models" begin
@@ -152,13 +153,16 @@ end
 @testset "Viability-Aware Strategies" begin
     @test vote([0,1,5], PluralityVA(nothing), plurality, [.49,.49,.02]) == [0,1,0]
     @test vote([0,1,5], PluralityVA(nothing), pluralitytop2, [.49,.49,.02]) == [0,0,1,0,1,2]
+    @test vote([0,1,5,6], VMES.PluralityTop2VA(nothing), pluralitytop2, [.4,.3,.2, .1]) == [0,0,1,0,0,1,2,3]
     @test vote([0,1,5], PluralityVA(nothing), plurality, [.05,.9,.05]) == [0,0,1]
     @test vote([0,1,5], ApprovalVA(nothing), approval, [.49,.49,.02]) == [0,1,1]
     @test vote([0,1,5], ApprovalVA(nothing), approvaltop2, [.49,.49,.02]) == [0,0,1,0,1,2]
+    @test vote([0,1,5,6], VMES.ApprovalTop2VA(nothing), approvaltop2, [.4,.3,.2,.1]) == [0,0,1,1,0,1,2,3]
     @test vote([0,1,5], ApprovalVA(nothing), approval, [.05,.9,.05]) == [0,0,1]
     @test vote([3,2,1,0], BordaVA(nothing), borda, [.05, .4, .4, .05]) == [2, 3, 0, 1]
     @test vote([3,2,1,0], IRVVA(nothing, 0), irv, [.05, .4, .4, .05]) == [2, 3, 1, 0]
     @test VMES.top3values([0,1,3], [.5,.4,.1]) ≈ [-.08, -0.02, 0.1]
+    #@test sign.(VMES.top3values([1,2,3,5],[.99999,1e-5,1e-5,1e-5])) == [-1,-1,1,1]
     sc, rc = VMES.starvacoeffs([0,1,3], hon, [.5,.4,.1])
     @test isapprox(sc, [-.08, -0.02, 0.1], atol=1e-10)
     @test isapprox(rc, [0 0.2 0.15
@@ -212,6 +216,12 @@ end
 
 @testset "Polls to Probabilities" begin
     @test VMES.betaprobs([0.4,0.4,0.5],0.1) ≈ [0.16885924923285558, 0.16885924923285558, 0.6622815015342889]
+    @test VMES.tiefortwoprob([.499999999999,.499999999999,.000000000002]) ≈ [0.2928932188139377
+                                                                            0.2928932188139377
+                                                                            0.41421356237212464]
+    @test VMES.tiefortwoprob([0, 0.5,0.5]) ≈ [0.41421356260416836
+                                                0.29289321869791585
+                                                0.29289321869791585]
 end
 
 @testset "VM Tabulation" begin
@@ -571,6 +581,34 @@ end
         @test df.Total == [0,10,10,20,0,0]
     end
 
+    @testset "Cid summary statistics" begin
+        df = DataFrame(:Method=>repeat([plurality],12), :CID=>repeat([1],12), :Bucket=>1:12, Symbol("Total Buckets")=>repeat([12],12),
+            Symbol("Electorate Strategy") => repeat([nothing],12),
+            :ncand => repeat([nothing],12), Symbol("Utility Change") => repeat([nothing],12))
+        @test influence_cdf(df, 1/2)[1, "CS0.5"] == 0.5
+        df = DataFrame(:Method=>repeat([plurality],12), :CID=>repeat([1],12), Symbol("Electorate Strategy") => repeat([nothing],12),
+                        :ncand => repeat([nothing],12), Symbol("Utility Change") => repeat([nothing],12),
+                        :Bucket=>12:-1:1, Symbol("Total Buckets")=>repeat([12],12))
+        @test influence_cdf(df, 1//4)[1, "CS1//4"] == 0.25
+        @test total_variation_distance_from_uniform([2,2,2,2]) == 0
+        @test total_variation_distance_from_uniform([1,0,1,0]) == 0.5
+        @test total_variation_distance_from_uniform([1,1,0,0]) == 0.5
+        @test total_variation_distance_from_uniform([0,1,0,0]) == 0.75
+        @test earth_movers_distance_from_uniform([1,0,1,0]) == 1/8
+        @test earth_movers_distance_from_uniform([1,0,1,0,1,0]) == 1/12
+        @test earth_movers_distance_from_uniform([0,1,1,0]) == 1/8
+        @test earth_movers_distance_from_uniform([1,1,0,0]) == 1/4
+        @test earth_movers_distance_from_uniform([1,0,0,0]) == 3/8
+        @test earth_movers_distance_from_uniform([0.5,0.5,0,0]) == 1/4
+        @test distance_from_uniform(total_variation_distance_from_uniform, df)[1, "DFU"] == 0
+        @test distance_from_uniform(earth_movers_distance_from_uniform, df)[1, "DFU"] == 0
+        df = DataFrame(:Method=>repeat([plurality],4), :CID=>[1,1,0,0], :Bucket=>[1,3,2,4],
+                        Symbol("Electorate Strategy") => repeat([nothing],4),
+                        :ncand => repeat([nothing],4), Symbol("Utility Change") => repeat([nothing],4))
+        @test distance_from_uniform(total_variation_distance_from_uniform, df)[1, "DFU"] == 0.5
+        @test distance_from_uniform(earth_movers_distance_from_uniform, df)[1, "DFU"] == 1/8
+    end
+    
     @testset "esif" begin
         strats = [hon, abstain, bullet, ExpScale(3), ExpScale(3.1)]
         possballots, ballotlookup = VMES.stratballotdict(

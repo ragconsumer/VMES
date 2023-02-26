@@ -17,8 +17,27 @@ end
 
 struct BasicWinProbTemplate <: VoterStratTemplate
     basestrat::Union{DataType, Function}
+    extrauncertainty::Float64
     method::VotingMethod
     stratargs::Vector{Any}
+end
+
+struct TieForTwoTemplate <: VoterStratTemplate
+    basestrat::Union{DataType, Function}
+    extrauncertainty::Float64
+    method::VotingMethod
+    stratargs::Vector{Any}
+end
+
+struct CrudeTop3Template <: VoterStratTemplate
+    basestrat::Union{DataType, Function}
+    extrauncertainty::Float64
+    method::VotingMethod
+    stratargs::Vector{Any}
+end
+
+function BasicWinProbTemplate(basestrat::Union{DataType, Function}, method::VotingMethod, stratargs::Vector)
+    BasicWinProbTemplate(basestrat, 0.0, method, stratargs)
 end
 
 approvalvatemplate = BasicWinProbTemplate(ApprovalVA, approval, [])
@@ -32,7 +51,11 @@ struct ApprovalWinProbTemplate <: VoterStratTemplate
     stratargs::Vector{Any}
 end
 
-irvvatemplate = ApprovalWinProbTemplate(IRVVA, 0.05, TopMeanThreshold(0.1), [0.0])
+#These setting are approximately optimal for each of these voting methods.
+#However, with only 3 winners it helps to use a lower approval threshold in the polls.
+irvvatemplate = ApprovalWinProbTemplate(IRVVA, 0.1, TopMeanThreshold(0.1), [0.0])
+approvaltop2vatemplate = ApprovalWinProbTemplate(ApprovalTop2VA, 0.1, TopMeanThreshold(0.1), [])
+pluralitytop2vatemplate = ApprovalWinProbTemplate(PluralityTop2VA, 0.1, TopMeanThreshold(0.1), [])
 
 """
 Contains the information needed to conventiently construct an electorate strategy.
@@ -93,7 +116,7 @@ function vsfromtemplate(template::BasicPollStratTemplate, pollestrat::Electorate
 end
 function vsfromtemplate(template::BasicWinProbTemplate, pollestrat::ElectorateStrategy, pollinguncertainty::Float64)
     return template.basestrat(
-        WinProbSpec(BasicPollSpec(template.method, pollestrat), pollinguncertainty), template.stratargs...)
+        WinProbSpec(BasicPollSpec(template.method, pollestrat), pollinguncertainty + template.extrauncertainty), template.stratargs...)
 end
 function vsfromtemplate(template::ApprovalWinProbTemplate, base_estrat::ElectorateStrategy, pollinguncertainty::Float64)
     estrat = ElectorateStrategy(base_estrat.flexible_strategists,
@@ -102,6 +125,14 @@ function vsfromtemplate(template::ApprovalWinProbTemplate, base_estrat::Electora
     return template.basestrat(
         WinProbSpec(BasicPollSpec(approval, estrat),
                     pollinguncertainty + template.extrauncertainty), template.stratargs...)
+end
+function vsfromtemplate(template::TieForTwoTemplate, pollestrat::ElectorateStrategy, pollinguncertainty::Float64)
+    wps = WinProbSpec(BasicPollSpec(template.method, pollestrat), pollinguncertainty + template.extrauncertainty)
+    return template.basestrat(TieForTwoSpec(wps), template.stratargs...)
+end
+function vsfromtemplate(template::CrudeTop3Template, pollestrat::ElectorateStrategy, pollinguncertainty::Float64)
+    return template.basestrat(
+        CrudeTop3Spec(BasicPollSpec(template.method, pollestrat), pollinguncertainty + template.extrauncertainty), template.stratargs...)
 end
 vsfromtemplate(template::VoterStrategy, _, _) = template
 

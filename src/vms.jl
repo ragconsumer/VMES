@@ -13,11 +13,11 @@ vmnames = Dict{VotingMethod, String}()
 
 include("mwmethods.jl")
 
-struct Top2Method <: VotingMethod
-    basemethod::OneRoundMethod
+struct Top2Method{T} <: VotingMethod
+    basemethod::T
 end
-struct Smith <: OneRoundMethod
-    basemethod::OneRoundMethod
+struct Smith{T} <: OneRoundMethod
+    basemethod::T
 end
 
 struct PluralityVoting <: PluralityMethod; end #irrelevant that it's considered a cardinal method in the code
@@ -273,29 +273,3 @@ function tabulatefromcompmat(compmat::Matrix{T}, ::RankedRobin) where T <: Real
                     for lcand in 1:n]
     return [compmat wincounts finalmargins]
 end
-#=
-function tabulate(ballots, ::Minimax)
-    ncands = size(ballots, 1)
-    compmat = pairwisematrix(ballots)
-    minmargins = [minimum(
-        compmat[lcand, tcand] - compmat[tcand, lcand]
-        for tcand in 1:ncands if tcand != lcand)
-        for lcand in 1:ncands]
-    return [compmat minmargins]
-end
-
-function tabulate(ballots, ::RankedRobin)
-    n = size(ballots, 1)
-    compmat = pairwisematrix(ballots)
-    wincounts = [count(>(0), compmat[lcand, tcand] - compmat[tcand, lcand] for tcand in 1:n) for lcand in 1:n]
-    mostwins = maximum(wincounts)
-    finalists = [c for c in 1:n if wincounts[c] == mostwins]
-    if length(finalists) == 1
-        return [compmat wincounts]
-    end
-    finalmargins = [(lcand ∈ finalists ?
-                    sum(compmat[lcand, tcand] - compmat[tcand, lcand] for tcand in finalists) : -999)
-                    for lcand in 1:n]
-    return [compmat wincounts finalmargins]
-end
-=#

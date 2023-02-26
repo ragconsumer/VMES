@@ -19,6 +19,11 @@ struct TieForTwoSpec <: ProbSpec
     winprobspec::WinProbSpec
 end
 
+struct CrudeTop3Spec <: ProbSpec
+    pollspec::PollSpec
+    uncertainty::Float64
+end
+
 function Base.:(==)(x::PS, y::PS) where PS <: PollSpec
     x.method == y.method && x.estrat == y.estrat
 end
@@ -29,6 +34,10 @@ end
 
 function Base.:(==)(x::TieForTwoSpec, y::TieForTwoSpec)
     x.winprobspec == y.winprobspec
+end
+
+function Base.:(==)(x::CrudeTop3Spec, y::CrudeTop3Spec)
+    x.pollspec == y.pollspec && x.uncertainty == y.uncertainty
 end
 
 function Base.hash(x::PS, h::UInt) where PS <: PollSpec
@@ -45,6 +54,12 @@ function Base.hash(x::WinProbSpec, h::UInt)
 end
 
 Base.hash(x::TieForTwoSpec, h::UInt) = hash(x.winprobspec, h)
+
+function Base.hash(x::CrudeTop3Spec, h::UInt)
+    h = hash(x.pollspec, h)
+    h = hash(x.uncertainty, h)
+    return h
+end
 
 """
     administerpolls(electorate, (strats, methods),
@@ -142,8 +157,11 @@ function addspecificinfo!(infodict, electorate, spec::WinProbSpec, noisevector, 
 end
 
 function addspecificinfo!(infodict, electorate, spec::TieForTwoSpec, noisevector, iidnoise, respondants)
-    #NYI
-    #infodict[spec] = betaprobs(infodict[spec.wimprobspec], spec.uncertainty)
+    infodict[spec] = tiefortwoprob(infodict[spec.winprobspec])
+end
+
+function addspecificinfo!(infodict, electorate, spec::CrudeTop3Spec, noisevector, iidnoise, respondants)
+    infodict[spec] = crudetop3probs(infodict[spec.pollspec], spec.uncertainty)
 end
 
 """
@@ -157,6 +175,7 @@ neededinfo(strat::VoterStrategy, ::VotingMethod) = Set([strat.neededinfo])
 neededinfo(::BlindStrategy, ::VotingMethod) = Set()
 neededinfo(spec::PollSpec) = neededinfo(spec.estrat, spec.method)
 neededinfo(spec::WinProbSpec) = Set([spec.pollspec])
+neededinfo(spec::CrudeTop3Spec) = Set([spec.pollspec])
 neededinfo(spec::TieForTwoSpec) = Set([spec.winprobspec])
 
 function neededinfo(estrat::ElectorateStrategy, method::VotingMethod)
