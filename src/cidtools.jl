@@ -63,7 +63,7 @@ end
 """
     earth_movers_distance_from_uniform(dist)
 
-Calculate the earth mover's distance fromt eh uniform distribution
+Calculate the earth mover's distance from the uniform distribution
 """
 function earth_movers_distance_from_uniform(dist)
     avg = Statistics.mean(dist)

@@ -134,6 +134,56 @@ end
 
 tabulate(ballots, method::RCV) = tabulate(ballots, method::RCV, 1)
 
+function placementsfromtab(tabulation::AbstractArray, method::RankedChoiceVoting, nwinners=1)
+    if size(tabulation, 2) == 1
+        return indices_by_sorted_values(tabulation[:, 1])
+    end
+    quota = Inf
+    ncand, nrounds = size(tabulation)
+    if nwinners != 1
+        for c in 1:ncand, r in 2:nrounds
+            if tabulation[c,r] < tabulation[c, r-1] && tabulation[c,r] > 0
+                quota = tabulation[c,r]
+                break
+            end
+        end
+    end
+    placements = indices_by_sorted_values(tabulation[:, end])
+    #from here, we just need to correct the placements of candidates who
+    #were elected or eliminated before the final round.
+    candsleft = BitSet(1:ncand)
+    nelected, neliminated = 0, 0
+    for round in 1:nrounds
+        eliminated = Vector{Int}()
+        elected = Vector{Int}()
+        for cand in candsleft
+            if tabulation[cand, round] == 0
+                push!(eliminated, cand)
+            elseif tabulation[cand, round] >= quota
+                push!(elected, cand)
+            end
+        end
+        sort!(elected,
+            lt=(c1, c2)->tabulation[c1]<tabulation[c2] ? true :
+                tabulation[c1] == tabulation[c2] && c1<c2 ? true : false,
+                rev = true)
+        sort!(eliminated,
+            lt=(c1, c2)->tabulation[c1]<tabulation[c2] ? true :
+                tabulation[c1] == tabulation[c2] && c1<c2 ? true : false,)
+        for winner in elected
+            nelected += 1
+            placements[nelected] = winner
+            delete!(candsleft, winner)
+        end
+        for loser in eliminated
+            placements[ncand - neliminated] = loser
+            neliminated += 1
+            delete!(candsleft, loser)
+        end
+    end
+    return placements
+end
+
 abstract type ScorePR <: ScoringMethod end
 
 """

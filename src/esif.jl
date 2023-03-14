@@ -19,21 +19,23 @@ Each tuple in the vector is of the form (methods, basestrats, strats)
     - basestrats: An array of electorate strategies, each of which will be used by default
     as the background strategy. Estrat templates can be used in place of electorate strategies.
     - strats: The voter strategies under consideration. These are the foci of the ESIF simulations.
-    Voter strategy templates can be used in place of svoter strategies, in which case they will use
+    Voter strategy templates can be used in place of voter strategies, in which case they will use
     the basestrats for polling information.
 - `nvot::Integer`: The number of voters. Should match the number of voters given in basestrats.
 - `ncand::Integer`: The number of candidates.
 - `correlatednoise::Real` The amount of correlated polling noise, give in standard deviations. 
 - `iidnoise::Real` The amount of uncorrelated polling noise, give in standard deviations.
-`nwinners::Integer` The number of winners of each election.
+- `nwinners::Integer` The number of winners of each election.
 """
 function calc_esif(niter::Integer, vmodel::VoterModel, methodsandstrats::Vector, nvot::Integer, ncand::Integer,
                    correlatednoise::Number=0.1, iidnoise::Number=0, nwinners::Integer=1)
-    methodsandstrats = buildfromtemplatesforesif(methodsandstrats, hypot(correlatednoise, iidnoise))
+    calc_stratmetric(ESIF(), niter, vmodel, methodsandstrats, nvot, ncand, correlatednoise,
+                     iidnoise, nwinners, ())
+    #=methodsandstrats = buildfromtemplatesforesif(methodsandstrats, hypot(correlatednoise, iidnoise))
     m_and_s_abstain = [(methods, basestrats, cat(abstain, strats, dims=1))
                         for (methods, basestrats, strats) in methodsandstrats]
     results = Array{Float64}(undef, numutilmetrics(nwinners), num_esif_columns(m_and_s_abstain), niter)
-    #=Threads.@threads =#for i in 1:niter
+    Threads.@threads for i in 1:niter
         results[:, :, i] = one_esif_iter(vmodel, m_and_s_abstain, nvot, ncand,
                                         correlatednoise, iidnoise, nwinners)
     end
@@ -46,48 +48,37 @@ function calc_esif(niter::Integer, vmodel::VoterModel, methodsandstrats::Vector,
     results[!, "Correlated Noise"] .= correlatednoise
     results[!, "IID Noise"] .= iidnoise
     results[!, "Iterations"] .= niter
-    return results
+    return results=#
 end
 
 """
-    totals_to_esif(totals::Matrix{Float64}, methodsandstrats)
+    innerstratmetric!(utiltotals, ::ESIF, electorate, flexible_strategists::Int, 
+                           methods::Vector{<:VotingMethod}, strat_templates::Vector,
+                           basestrat::ElectorateStrategy, baseballots, basewinnersets, infodict::Dict,
+                           _, correlatednoise::Real, iidnoise::Real,
+                           nwinners::Int, startindex::Int, _)
 
-Convert utility totals to ESIFs.
+The inner loops of an ESIF iteration.
 """
-function totals_to_esif(totals::Matrix{Float64}, methodsandstrats)
-    nmetrics = numutilmetrics(size(totals, 1))
-    ncolumns = num_esif_columns(methodsandstrats)
-    numentries = ncolumns*nmetrics
-    basestratentries = Vector{ElectorateStrategy}(undef, numentries)
-    methodentries = Vector{VotingMethod}(undef, numentries)
-    stratentries = Vector{Union{VoterStrategy, VoterStratTemplate}}(undef, numentries)
-    metricentries = Vector{String}(undef, numentries)
-    esifs = Vector{Float64}(undef, numentries)
-    for metric in 1:nmetrics
-        i = 1 #index of row of results being constructed
-        totalsindex = 1 #index of 
-        for (methods, basestrats, strats) in methodsandstrats
-            for basestrat in basestrats
-                for method in methods
-                    abstain_util = totals[metric, totalsindex]
-                    totalsindex += 1
-                    for strat in strats
-                        basestratentries[(metric-1)*ncolumns + i] = basestrat
-                        methodentries[(metric-1)*ncolumns + i] = method
-                        stratentries[(metric-1)*ncolumns + i] = strat
-                        metricentries[(metric-1)*ncolumns + i] = metricnames(metric)
-                        esifs[(metric-1)*ncolumns + i] = (abstain_util-totals[metric, totalsindex])/abstain_util
-                        i += 1
-                        totalsindex += 1
-                    end
-                end
+function innerstratmetric!(utiltotals, ::ESIF, electorate, flexible_strategists::Int, 
+                           methods::Vector{<:VotingMethod}, strat_templates::Vector,
+                           basestrat::ElectorateStrategy, baseballots, basewinnersets, infodict::Dict,
+                           _, correlatednoise::Real, iidnoise::Real,
+                           nwinners::Int, startindex::Int, _)
+    strats = [vsfromtemplate(template, basestrat, hypot(correlatednoise, iidnoise))
+                for template in strat_templates]
+    for voterindex in 1:flexible_strategists
+        voter = electorate[:, voterindex]
+        smallutindex = 0
+        possibleballots, ballotlookup = stratballotdict(voter, strats, methods[1], baseballots[:, voterindex], infodict)
+        brm = ballotresultmap(possibleballots, baseballots, methods, basewinnersets, voter, voterindex, nwinners)
+        for method_i in eachindex(methods)
+            for strat_i in eachindex(strats)
+                utiltotals[:, startindex + smallutindex] += brm[:, ballotlookup[strat_i], method_i]
+                smallutindex += 1
             end
         end
     end
-    return DataFrame(:Metric=>metricentries, :Method=>methodentries,
-                     Symbol("Base Strategy")=>basestratentries, :Strategy=>stratentries,
-                     :ESIF=>esifs)
-    #return basestratentries, methodentries, stratentries, esifs
 end
 
 """
@@ -96,7 +87,7 @@ end
 
 A single iteration for ESIF.
 """
-function one_esif_iter(vmodel::VoterModel, methodsandstrats::Vector, nvot::Integer, ncand::Integer,
+#=function one_esif_iter(vmodel::VoterModel, methodsandstrats::Vector, nvot::Integer, ncand::Integer,
                        correlatednoise::Number, iidnoise::Number, nwinners::Integer)
     electorate = make_electorate(vmodel, nvot, ncand)
     admininput = getadminpollsinput(methodsandstrats, hypot(correlatednoise, iidnoise))
@@ -127,33 +118,8 @@ function one_esif_iter(vmodel::VoterModel, methodsandstrats::Vector, nvot::Integ
         bigutindex += length(methods)*length(strat_templates)*length(basestrats)
     end
     return utiltotals  
-end
+end=#
 
-"""
-    getadminpollsinput(methodsandstrats)
-
-Convert the vector of (methods, basestrats, strats) tuple to something compatible with administerpolls()
-"""
-function getadminpollsinput(methodsandstrats, uncertainty)
-    total_length = sum(length(basestrats)*(1 + length(strats))
-                        for (methods, basestrats, strats) in methodsandstrats)
-    stratinputs = Vector{Union{VoterStrategy, ElectorateStrategy}}(undef, total_length)
-    methodinputs = Vector{VotingMethod}(undef, total_length)
-    i = 1
-    for (methods, basestrats, strats) in methodsandstrats
-        for basestrat in basestrats
-            methodinputs[i] = methods[1]
-            stratinputs[i] = basestrat
-            i += 1
-            for strat in strats
-                methodinputs[i] = methods[1]
-                stratinputs[i] = vsfromtemplate(strat, basestrat, uncertainty)
-                i += 1
-            end
-        end
-    end
-    return stratinputs, methodinputs
-end
 
 """
     stratballotdict(voter, strats, method, baseballot, infodict)
@@ -220,17 +186,3 @@ function ballotresultmap(possibleballots, bgballots, methods, basewinnersets, vo
     return utiltable
 end
 
-function num_esif_columns(methodsandstrats)
-    return sum(length(basestrats)*length(strats)*length(methods)
-               for (methods, basestrats, strats) in methodsandstrats)
-end
-
-"""
-    buildfromtemplatesforesif(methodsandstrats::Vector, uncertainty::Float64)
-
-Convert electorate strat templates to estrats in methodsandstrats
-"""
-function buildfromtemplatesforesif(methodsandstrats::Vector, uncertainty::Float64)
-    return [(m, [esfromtemplate(basestrat, uncertainty) for basestrat in basestrats], s)
-            for (m, basestrats, s) in methodsandstrats]
-end

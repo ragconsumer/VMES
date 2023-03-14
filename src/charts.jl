@@ -57,7 +57,7 @@ function vse_va_chart(df::DataFrame)
     df2.Method = string.(df2.Method)
     df2.estrat = string.(df2[!,"Electorate Strategy"])
     df2.vas = vafraction.(df2.estrat,df2.nvot)
-    plot(df2, x=:vas, y=:VSE, color=:Method, Geom.point, Geom.line,
+    plot(df2, x=:vas, y=:VSE, color=:Method, Geom.line,
         Guide.xlabel("% viability-aware"),
         Guide.colorkey(title="Method", labels=[
             "Choose One", "Choosen One + Top 2","Approval","Approval + Top 2","Ranked Choice","STAR"]),

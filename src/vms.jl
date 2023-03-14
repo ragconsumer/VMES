@@ -117,6 +117,12 @@ getballotsize(::Top2Method, ncand) = 2ncand
 
 ballotmarktype(::VotingMethod) = Int
 
+topballotmark(_, ::ApprovalMethod) = 1
+topballotmark(_, method::ScoringMethod) = method.maxscore
+topballotmark(voter, ::RankedMethod) = length(voter) - 1
+topballotmark(voter, method::Top2Method) = topballotmark(voter, method.basemethod)
+
+
 """
     getwinners(ballots::AbstractArray, method::VotingMethod, nwinners=1)
 
@@ -146,12 +152,45 @@ function winnersfromtab(tabulation::AbstractArray, method::VotingMethod, nwinner
     if nwinners == 1
         return winnersfromtab(tabulation, method)
     else
+        return indices_by_sorted_values(tabulation[:, end])[1:nwinners]
         result_tuples = [(i, result) for (i, result) in enumerate(tabulation[:,end])]
         sort!(result_tuples,
             lt=((i1, r1), (i2, r2))->r1<r2 ? true : r1==r2 && i1>i2 ? true : false,
             rev=true)
         return[i for (i, _) in result_tuples[1:nwinners]]
     end
+end
+
+"""
+    indices_by_sorted_values(values::Vector)
+
+Return a vector v with the property values[v] == sort(values, rev=true)
+
+(Up to ties, which are broken s.t. lower indicies mean greater values)
+"""
+function indices_by_sorted_values(values::Vector)
+    result_tuples = [(i, result) for (i, result) in enumerate(values)]
+    sort!(result_tuples,
+            lt=((i1, r1), (i2, r2))->r1<r2 ? true : r1==r2 && i1>i2 ? true : false,
+            rev=true)
+    return[i for (i, _) in result_tuples]
+end
+
+"""
+    placementsfromtab(tabulation::AbstractArray, ::VotingMethod)
+
+Determine the first-place, second-place, etc. candidates.
+"""
+placementsfromtab(tabulation::AbstractArray, method::VotingMethod, _) = placementsfromtab(tabulation, method)
+
+placementsfromtab(tabulation::AbstractArray, ::VotingMethod) = indices_by_sorted_values(tabulation[:, end])
+
+function placementsfromtab(tabulation::AbstractArray, ::Union{Top2Method, STARVoting})
+    placements = indices_by_sorted_values(tabulation[:, 1])
+    if argmax(tabulation[:, end]) != placements[1]
+        placements[1], placements[2] = placements[2], placements[1]
+    end
+    return placements
 end
 
 """

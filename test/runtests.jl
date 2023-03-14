@@ -225,6 +225,7 @@ end
 end
 
 @testset "VM Tabulation" begin
+    @test VMES.indices_by_sorted_values([1,3,5,5,3,2,6,0]) == [7,3,4,2,5,6,1,8]
     @test winnersfromtab([50; 43; 60;; 50; 43; 43], allocatedscore, 2) == [1, 2]
     @test winnersfromtab([50; 43; 60;; 50; 43; 53], allocatedscore, 2) == [3, 1]
     @test VMES.hontabulate(VMES.centersqueeze1, plurality)==[5; 2; 4;;]
@@ -240,6 +241,8 @@ end
 
     @test tabulate(VMES.startestballots, score) == [50; 43; 43;;]
     @test tabulate(VMES.startestballots, star) == [50; 43; 43;; 10; 11; 0]
+    @test VMES.placementsfromtab([50; 43; 43;;], score) == [1,2,3]
+    @test VMES.placementsfromtab([50; 43; 43;; 10; 11; 0], score) == [2,1,3]
 
     @test VMES.pairwisematrix(VMES.centersqueeze1) == [0 5 5
                                                            6 0 7
@@ -261,11 +264,18 @@ end
         
         @test VMES.hontabulate(VMES.centersqueeze1, irv)==[5; 2; 4;; 5; 0; 6]
         @test VMES.hontabulate(VMES.centersqueeze2, irv)==[6; 3; 3;; 6; 6; 0]
+        @test VMES.placementsfromtab([6; 3; 3;; 6; 6; 0], irv) == [1,2,3]
+        @test VMES.placementsfromtab([5; 2; 4;; 5; 0; 6], irv) == [3, 1, 2]
         @test VMES.hontabulate(VMES.fivecand2party, rcv, 1)==[  8.0  12.0  12.0  12.0
                                                                 4.0   0     0     0
                                                                 6.0   6.0   6.0   0
                                                                 6.0   6.0  11.0  17.0
                                                                 5.0   5.0   0     0]
+        @test VMES.placementsfromtab([  8.0  12.0  12.0  12.0
+                                        4.0   0     0     0
+                                        6.0   6.0   6.0   0
+                                        6.0   6.0  11.0  17.0
+                                        5.0   5.0   0     0], rcv, 1) == [4, 1, 3, 5, 2]
         @test VMES.hontabulate(VMES.fivecand2party, rcv, 2)≈[ 8.0  12.0  10.0  10.0
                                                                 4.0   0.0   0.0   0.0
                                                                 6.0   6.0   8.0   8.0
@@ -276,6 +286,11 @@ end
                                                                 6.0  6.0  10.0  8.0
                                                                 6.0  6.0   6.0  8.0
                                                                 5.0  5.0   5.0  5.0]
+        @test VMES.placementsfromtab([ 8.0  8.0   8.0  8.0
+                                        4.0  4.0   0.0  0.0
+                                        6.0  6.0  10.0  8.0
+                                        6.0  6.0   6.0  8.0
+                                        5.0  5.0   5.0  5.0], rcv, 3) == [1, 3, 4, 5, 2]
         @test VMES.hontabulate(VMES.fivecand2partymessier, rcv, 2)≈[8.0  12.0  10.0      10.0
                                                                     4.0   0.0   0.0       0.0
                                                                     6.0   6.0   7.666666667   7.666666667
@@ -646,13 +661,13 @@ end
         methodsandstrats = [([score, star], [ElectorateStrategy(hon,3), ElectorateStrategy(ExpScale(3),3)], [hon, bullet]),
                             ([rcv], [ElectorateStrategy(bullet,3)], [abstain, bullet, hon])]
         electorate = [0;1;2;-10;;2;0;1;-10;;1;2;0;-10] #symmetric reverse spoiler scenario (also a Condorcet cycle)
-        utiltotals = VMES.one_esif_iter(VMES.TestModel(electorate), methodsandstrats, 3, 4, 0, 0, 1)
+        utiltotals = VMES.one_stratmetric_iter(VMES.ESIF(), VMES.TestModel(electorate), methodsandstrats, 3, 4, 0, 0, 1, ())
         @test utiltotals == [0. 3 0 1 -3 3 0 -3 -2 0 1]
 
         esifs = calc_esif(10, VMES.TestModel(electorate), methodsandstrats, 3, 4, 0, 0, 1).ESIF
         @test esifs == [1, 2, 1, 4/3, 0, 2, 1, -0.5, 0, 1, 1.5]
 
         totals = [-3 0. 3 -3 0 1 -3 -3 3 -2 0 -3 -2 -2 0 1]
-        @test VMES.totals_to_esif(totals, methodsandstrats).ESIF == [1, 2, 1, 4/3, 0, 2, 1, -0.5, 0, 1, 1.5]
+        @test VMES.strategic_totals_to_df(totals, methodsandstrats).ESIF == [1, 2, 1, 4/3, 0, 2, 1, -0.5, 0, 1, 1.5]
     end
 end

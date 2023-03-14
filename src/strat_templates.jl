@@ -51,6 +51,18 @@ struct ApprovalWinProbTemplate <: VoterStratTemplate
     stratargs::Vector{Any}
 end
 
+struct CondorcetPollStratTemplate <: VoterStratTemplate
+    basestrat::Union{DataType, Function}
+    method::CondorcetCompMatOnly
+    stratargs::Vector{Any}
+end
+
+struct RCVPollStratTemplate <: VoterStratTemplate
+    basestrat::Union{DataType, Function}
+    nwinners::Int
+    stratargs::Vector{Any}
+end
+
 #These setting are approximately optimal for each of these voting methods.
 #However, with only 3 winners it helps to use a lower approval threshold in the polls.
 irvvatemplate = ApprovalWinProbTemplate(IRVVA, 0.1, TopMeanThreshold(0.1), [0.0])
@@ -125,6 +137,12 @@ function vsfromtemplate(template::ApprovalWinProbTemplate, base_estrat::Electora
     return template.basestrat(
         WinProbSpec(BasicPollSpec(approval, estrat),
                     pollinguncertainty + template.extrauncertainty), template.stratargs...)
+end
+function vsfromtemplate(template::CondorcetPollStratTemplate, pollestrat::ElectorateStrategy, _::Float64)
+    return template.basestrat(CondorcetPollSpec(template.method, pollestrat), template.stratargs...)
+end
+function vsfromtemplate(template::RCVPollStratTemplate, pollestrat::ElectorateStrategy, _::Float64)
+    return template.basestrat(RCVPollSpec(pollestrat, template.nwinners), template.stratargs...)
 end
 function vsfromtemplate(template::TieForTwoTemplate, pollestrat::ElectorateStrategy, pollinguncertainty::Float64)
     wps = WinProbSpec(BasicPollSpec(template.method, pollestrat), pollinguncertainty + template.extrauncertainty)
