@@ -670,4 +670,29 @@ end
         totals = [-3 0. 3 -3 0 1 -3 -3 3 -2 0 -3 -2 -2 0 1]
         @test VMES.strategic_totals_to_df(totals, methodsandstrats).ESIF == [1, 2, 1, 4/3, 0, 2, 1, -0.5, 0, 1, 1.5]
     end
+
+    @testset "Strategy Statistics" begin
+        electorate = [0;1;3;5;;5;4;4;0;;5;4;4;0;;3;4;5;0;;0;5;4;0;;0;0;0;5]
+        strat_totals = VMES.strat_stats_one_iter(VMES.TestModel(electorate), [star, irv],
+                                [ElectorateStrategy(hon, 6), ElectorateStrategy(hon, 6)], 6, 4, 1)
+        @test strat_totals[1] == [Dict(3=>1, 4=>3, 5=>1, 0=>1);
+                                    Dict(1=>1, 4=>3, 5=>1, 0=>1);
+                                    Dict(2=>1, 5=>2, 0=>3);
+                                    Dict(5=>2, 0=>4);;
+                                    Dict(3=>2, 2=>1, 1=>2, 0=>1);
+                                    Dict(3=>1, 2=>3, 1=>2);
+                                    Dict(3=>2, 0=>4);
+                                    Dict(3=>1, 2=>2, 1=>2, 0=>1)]
+        @test strat_totals[2] == [1,0]
+        @test strat_totals[3] == [Dict(0=>3, 2=>1, 1=>2);
+                                    Dict(1=>5, 2=>1)]
+        @test strat_totals[4] == [Dict(0=>1, 1=>2, 3=>2, 5=>1);
+                                    Dict(2=>2, 3=>4)]
+        dfs = collect_strat_stats(10, VMES.TestModel(electorate), [star, irv],
+                            [ElectorateStrategy(hon, 6), ElectorateStrategy(hon, 6)], 6, 4, 1)
+        @test dfs[1][!,"Bullet Votes"] == [1/6, 0]
+        @test dfs[1][!,"Mean Score"] == [Statistics.mean([0;1;3;5;;5;4;4;0;;5;4;4;0;;2;4;5;0;;0;5;4;0;;0;0;0;5]), 1.5]
+        @test dfs[1][!,"Top 2 Spread"] == [2/3, 7/6]
+        @test dfs[1][!,"Top 3 Spread"] ≈ [13/6, 16/6]
+    end
 end

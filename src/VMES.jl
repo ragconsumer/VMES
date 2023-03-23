@@ -11,7 +11,7 @@ export ElectorateStrategy, castballots
 export ESTemplate, BasicPollStratTemplate, esfromtemplate
 export BasicWinProbTemplate, approvalvatemplate, pluralityvatemplate, starvatemplate, irvvatemplate, esfromtemplate
 export make_electorate, ic, ImpartialCulture, DimModel, DCCModel, dcc, RepDrawModel
-export calc_vses, calc_esif, calc_cid, influence_cdf, distance_from_uniform
+export calc_vses, calc_esif, calc_cid, collect_strat_stats, influence_cdf, distance_from_uniform
 export util_pert_on_score_stats, total_variation_distance_from_uniform, earth_movers_distance_from_uniform
 
 
@@ -29,6 +29,7 @@ include("strat_templates.jl")
 include("polls.jl")
 include("fancypolls.jl")
 include("votermodels.jl")
+include("strat_statistics.jl")
 include("vse.jl")
 include("strategicmetrics.jl")
 include("esif.jl")

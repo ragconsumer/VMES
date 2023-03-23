@@ -24,7 +24,7 @@ function calc_cid(niter::Int,
                   correlatednoise::Float64=0.1, iidnoise::Float64=0.0)
     ITER_PER_SUM = 1000
     nmethod = length(methods)
-    entries = Array{Int, 3}(undef, nmethod, nbucket, niter)
+    entries = Array{Int, 3}(undef, nmethod, nbucket, min(niter, ITER_PER_SUM))
     counts = zeros(Int, nmethod, nbucket)
     iterleft = niter
     for _ in 1:ceil(Int, niter/ITER_PER_SUM)

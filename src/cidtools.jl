@@ -1,6 +1,10 @@
+#sorting functions
+
 function normalizedUtilDeviation(voter, cand)
     (voter[cand] - Statistics.mean(voter))/Statistics.std(voter, corrected=false)
 end
+
+וtilDeviation(voter, cand) = voter[cand] - Statistics.mean(voter)
 
 """
     util_pert_on_score_stats(niter::Int,
