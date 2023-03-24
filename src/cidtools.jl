@@ -4,7 +4,15 @@ function normalizedUtilDeviation(voter, cand)
     (voter[cand] - Statistics.mean(voter))/Statistics.std(voter, corrected=false)
 end
 
-וtilDeviation(voter, cand) = voter[cand] - Statistics.mean(voter)
+utilDeviation(voter, cand) = voter[cand] - Statistics.mean(voter)
+
+function devFromTop(voter, cand)
+    voter[cand] - maximum(voter[c] for c in 1:length(voter) if c != cand)
+end
+
+function normDevFromTop(voter, cand)
+    (voter[cand] - maximum(voter[c] for c in 1:length(voter) if c != cand))/Statistics.std(voter, corrected=false)
+end
 
 """
     util_pert_on_score_stats(niter::Int,

@@ -70,7 +70,7 @@ function vafraction(estratstr::String, nvot::Int)
     return nva*100/nvot
 end
 """
-df = VMES.calc_cid(100, VMES.dcc,
+df = VMES.calc_cid(1000, VMES.dcc,
     [VMES.plurality, VMES.pluralitytop2, VMES.approval, VMES.approvaltop2, VMES.rcv, VMES.star, VMES.rankedrobin],
     repeat([VMES.ElectorateStrategy(VMES.hon, 72)], 7), 24, 5)
 """

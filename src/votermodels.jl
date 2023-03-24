@@ -15,6 +15,12 @@ struct DimModel <: SpatialModel
     dimweights
 end
 
+struct BaseQualityNoiseModel <: VoterModel
+    basemodel::VoterModel
+    qualitystd::Float64
+    noisestd::Float64
+end
+
 struct DCCModel <: SpatialModel
     viewdecaydist
     viewcut
@@ -112,6 +118,20 @@ function make_electorate(model::DimModel, nvot::Int, ncand::Int, seed::Int)
         end
     end
     return SeededElectorate(utilmatrix, seed)
+end
+
+"""
+    make_electorate(model::BaseQualityNoiseModel, nvot::Int, ncand::Int, seed::Int)
+
+Create an electorate from a base model with candidate quality and iid voter preferences included
+"""
+function make_electorate(model::BaseQualityNoiseModel, nvot::Int, ncand::Int, seed::Int)
+    rng = Random.Xoshiro(seed)
+    electorate = make_electorate(model.basemodel, nvot, ncand, seed)
+    for c in 1:ncand
+        electorate[c,:] .+= model.qualitystd*randn(rng)
+    end
+    electorate += model.noisestd*randn(rng, ncand, nvot)
 end
 
 """

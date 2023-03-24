@@ -13,6 +13,21 @@ import Statistics, Distributions, Random
         @test 0.9*(2n) < meandiff < 1.1*(2n)
     end
 
+    @test VMES.make_electorate(BaseQualityNoiseModel(VMES.TestModel([1.;2;;3;4]), 0, 0), 2, 2)[1,1] == 1
+    e = VMES.make_electorate(BaseQualityNoiseModel(VMES.TestModel([1.;1;;1;1]), 1.0, 0), 2, 2)
+    @test e[1,1] != e[2,1]
+    @test e[1,1] == e[1,2]
+    abspref = 0
+    totalpref = 0
+    n = 10
+    for i in 1:n
+        e = VMES.make_electorate(BaseQualityNoiseModel(ic, 0, 1000),1000, 2)
+        abspref += abs(sum(e[1,:]) - sum(e[2,:]))
+        totalpref += sum(e[1,:]) - sum(e[2,:])
+    end
+    @test abspref > 10000n
+    @test totalpref < 100000 * sqrt(n)
+
     @testset "DCCModel" begin
         #test makeviews
         for i in 1:4
@@ -522,6 +537,13 @@ end
 
     @testset "CID" begin
         @test VMES.normalizedUtilDeviation([0,10],1) == -1
+        @test VMES.utilDeviation([0,10],1) == -5
+        @test VMES.utilDeviation([0,10],2) == 5
+        @test VMES.utilDeviation([0,10,5],3) == 0
+        @test VMES.devFromTop([0,10,5],3) == -5
+        @test VMES.devFromTop([0,10,5],2) == 5
+        @test VMES.devFromTop([0,10,10],3) == 0
+        @test VMES.normDevFromTop([0,10],2) == 2
         e = [0;0.9;1;;0;0.9;1;;0;0.9;1]
         es = ElectorateStrategy(abstain, 2, 2, 2)
         @test VMES.cidrevote(e, [5,1,4], es, approval, Dict(nothing=>nothing)) == [0;0;1;;0;0;0;;0;1;1]
