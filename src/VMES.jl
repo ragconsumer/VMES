@@ -5,7 +5,7 @@ export plurality, pluralitytop2, approval, approvaltop2, score, star, irv, rcv, 
 export sss, allocatedscore, s5h, sssr, asr, s5hr, sssfr, asfr, s5hfr, asu, asur, mes
 export vote
 export hon, bullet, abstain, TopBottomThreshold, TopMeanThreshold, StdThreshold
-export ExpScale, topbotem, topmeanem, scorebystd
+export ExpScale, topbotem, topmeanem, topmeanround, scorebystd
 export PluralityVA, ApprovalVA, BordaVA, IRVVA, STARVA
 export ElectorateStrategy, castballots
 export ESTemplate, BasicPollStratTemplate, esfromtemplate

@@ -680,7 +680,7 @@ end
         @test methodinputs == [repeat([star], 8); repeat([rcv], 3)]
 
         #test one_esif_iter
-        methodsandstrats = [([score, star], [ElectorateStrategy(hon,3), ElectorateStrategy(ExpScale(3),3)], [hon, bullet]),
+        methodsandstrats = [([score, star], [ElectorateStrategy(topmeanem,3), ElectorateStrategy(ExpScale(3),3)], [topmeanem, bullet]),
                             ([rcv], [ElectorateStrategy(bullet,3)], [abstain, bullet, hon])]
         electorate = [0;1;2;-10;;2;0;1;-10;;1;2;0;-10] #symmetric reverse spoiler scenario (also a Condorcet cycle)
         utiltotals = VMES.one_stratmetric_iter(VMES.ESIF(), VMES.TestModel(electorate), methodsandstrats, 3, 4, 0, 0, 1, ())
