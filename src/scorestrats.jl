@@ -101,7 +101,7 @@ function vote(voter, strat::ExpScale, method::ScoringMethod)
     vote((voter .- minimum(voter)) .^ strat.exponent, strat.basescale, method)
 end
 
-vote(voter, ::HonestVote, method::ScoringMethod) = vote(voter, topmeanem, method)
+vote(voter, ::HonestVote, method::ScoringMethod) = vote(voter, topmeanround, method)
 
 """
     starvacoeffs(v::Vector, ::STARVA, p::Vector)

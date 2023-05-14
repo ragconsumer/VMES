@@ -30,3 +30,9 @@ function vote(voter, strat::IRVVA, method::VotingMethod, winprobs)
                     voter[i] - threshold for i in eachindex(voter, winprobs)]
     return vote(worthinesses, hon, irv)
 end
+
+struct CondorcetVA <: BlindStrategy
+end
+
+vote(voter, strat::CondorcetVA, method::VotingMethod) = vote(voter, hon, method)
+condorcetva = CondorcetVA()

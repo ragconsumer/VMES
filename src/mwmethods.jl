@@ -402,6 +402,30 @@ end
     5, droop, weightedscorecount, allrunoffs, weightedstarrunoff,
     asreweight!, allweight, justscore
 )
+@namevm ashare = ScorePRTemplate(
+    5, exacthare, weightedscorecount, norunoffs, nothing,
+    asreweight!, allweight, weightedpriority
+)
+@namevm ashu = ScorePRTemplate(
+    5, exacthare, weightedscorecount, norunoffs, nothing,
+    asreweight!, allweight, justscore
+)
+@namevm ashfr = ScorePRTemplate(
+    5, exacthare, weightedscorecount, runofflastround, weightedstarrunoff,
+    asreweight!, allweight, weightedpriority
+)
+@namevm ashr = ScorePRTemplate(
+    5, exacthare, weightedscorecount, allrunoffs, weightedstarrunoff,
+    asreweight!, allweight, weightedpriority
+)
+@namevm s5hw = ScorePRTemplate(
+    5, droop, weightedscorecount, norunoffs, nothing,
+    asreweight!, sssweight, weightedpriority
+)
+@namevm s5hwr = ScorePRTemplate(
+    5, droop, weightedscorecount, allrunoffs, weightedstarrunoff,
+    asreweight!, sssweight, weightedpriority
+)
 
 """
     mes_min_rho(weightsandscores, quota)
