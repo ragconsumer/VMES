@@ -3,17 +3,27 @@ struct ESIF <: StrategicMetric; end
 struct PVSI <: StrategicMetric; end
 
 function calc_stratmetric(metric::StrategicMetric, niter::Integer, vmodel::VoterModel, methodsandstrats::Vector,
-                          nvot::Integer, ncand::Integer,
-                          correlatednoise::Real=0.1, iidnoise::Real=0, nwinners::Integer=1,
-                          innerstratargs=())
+                          nvot::Integer, ncand::Integer;
+                          correlatednoise::Real=0.1, iidnoise::Real=0, nwinners::Integer=1, seed=abs(rand(Int)),
+                          iter_per_update=0, innerstratargs=())
     methodsandstrats = build_methodsandstrats_from_templates(methodsandstrats, hypot(correlatednoise, iidnoise))
     m_and_s_abstain = maybe_add_abstain(metric, methodsandstrats)
-    results = Array{Float64}(undef, numutilmetrics(nwinners), num_stratmetric_columns(m_and_s_abstain), niter)
-    Threads.@threads for i in 1:niter
-        results[:, :, i] = one_stratmetric_iter(metric, vmodel, m_and_s_abstain, nvot, ncand,
-                                        correlatednoise, iidnoise, nwinners, innerstratargs)
+    partialresults = zeros(Float64, numutilmetrics(nwinners), num_stratmetric_columns(m_and_s_abstain),
+                                    Threads.nthreads())
+    top_rng = Random.Xoshiro(seed)
+    threadseeds = abs.(rand(top_rng, Int, Threads.nthreads()))
+    Threads.@threads for tid in 1:Threads.nthreads()
+        iterationsinthread = niter ÷ Threads.nthreads() + (tid <= niter % Threads.nthreads() ? 1 : 0)
+        rng = Random.Xoshiro(threadseeds[tid])
+        for i in 1:iterationsinthread
+            if iter_per_update > 0 && i % iter_per_update == 0
+                println("Iteration $i in thread $tid")
+            end
+            partialresults[:, :, tid] += one_stratmetric_iter(metric, vmodel, m_and_s_abstain, nvot, ncand,
+                                        correlatednoise, iidnoise, nwinners, innerstratargs, rng)
+        end
     end
-    totals = dropdims(sum(results, dims=3), dims=3) #memory inefficient summation
+    totals = dropdims(sum(partialresults, dims=3), dims=3)
     results = strategic_totals_to_df(totals, methodsandstrats)
     results[!, "Voter Model"] .= [vmodel]
     results[!, "nvot"] .= nvot
@@ -22,6 +32,7 @@ function calc_stratmetric(metric::StrategicMetric, niter::Integer, vmodel::Voter
     results[!, "Correlated Noise"] .= correlatednoise
     results[!, "IID Noise"] .= iidnoise
     results[!, "Iterations"] .= niter
+    results[!, "Seed"] .= seed
     return results
 end
 
@@ -41,7 +52,7 @@ function strategic_totals_to_df(totals::Matrix{Float64}, methodsandstrats)
     esifs = Vector{Float64}(undef, numentries)
     for metric in 1:nmetrics
         i = 1 #index of row of results being constructed
-        totalsindex = 1 #index of 
+        totalsindex = 1 #index of row currenty being read from
         for (methods, basestrats, strats) in methodsandstrats
             for basestrat in basestrats
                 for method in methods
@@ -76,11 +87,11 @@ A single iteration of ESIF or PVSI"""
 function one_stratmetric_iter(metric::StrategicMetric, vmodel::VoterModel, methodsandstrats::Vector,
                               nvot::Integer, ncand::Integer,
                               correlatednoise::Number, iidnoise::Number, nwinners::Integer,
-                              innerstratargs)
-    electorate = make_electorate(vmodel, nvot, ncand)
+                              innerstratargs, rng=Random.Xoshiro())
+    electorate = make_electorate(vmodel, nvot, ncand, abs(rand(rng, Int)))
     admininput = getadminpollsinput(methodsandstrats, hypot(correlatednoise, iidnoise))
-    noisevector = correlatednoise .* randn(size(electorate,1))
-    infodict = administerpolls(electorate, admininput, noisevector, iidnoise)
+    noisevector = correlatednoise .* randn(rng, size(electorate,1))
+    infodict = administerpolls(electorate, admininput, noisevector, iidnoise, nothing, rng)
     utiltotals = zeros(Float64, numutilmetrics(nwinners), num_stratmetric_columns(methodsandstrats))
     bigutindex = 1
     for (methods, basestrats, strat_templates) in methodsandstrats

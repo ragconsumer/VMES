@@ -431,6 +431,18 @@ end
                                                               0 0 0 4 0 3 0 2 10
                                                               5 5 5 5 5 5 5 5 5
                                                               5 5 0 4 0 3 0 2 0]
+        trickyballots = [0 0 0 0 0 0 1 0 0 0 0 5 0 0 0 0 0 0 0 5 0 5 0 0 0
+                        0 0 0 5 5 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 5 0 0
+                        0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 0
+                        5 0 4 0 0 0 0 5 0 0 2 0 5 5 0 5 0 5 5 0 5 0 0 0 5
+                        0 0 0 5 5 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 5 0 0
+                        0 5 0 0 0 0 0 0 5 0 0 0 0 0 0 0 5 0 0 0 0 0 0 0 1
+                        4 0 5 0 1 0 0 4 0 0 2 0 4 3 0 4 0 4 3 0 4 0 0 0 3
+                        1 0 3 0 2 0 0 1 0 0 5 0 1 0 0 1 0 1 0 0 1 0 0 0 0
+                        0 0 0 0 0 0 1 0 0 0 0 5 0 0 0 0 0 0 0 5 0 5 0 0 0
+                        0 0 0 0 0 5 5 0 0 5 0 5 0 0 5 0 0 0 0 0 0 5 0 5 0]
+        #These previously caused the MES-Droop tabulation to enter an infinite loop
+        @test VMES.tabulate(trickyballots, mesdroop, 4)[1,1] == 4
     end
 end
 
@@ -686,11 +698,21 @@ end
         utiltotals = VMES.one_stratmetric_iter(VMES.ESIF(), VMES.TestModel(electorate), methodsandstrats, 3, 4, 0, 0, 1, ())
         @test utiltotals == [0. 3 0 1 -3 3 0 -3 -2 0 1]
 
-        esifs = calc_esif(10, VMES.TestModel(electorate), methodsandstrats, 3, 4, 0, 0, 1).ESIF
+        esifs = calc_esif(10, VMES.TestModel(electorate), methodsandstrats, 3, 4).ESIF
         @test esifs == [1, 2, 1, 4/3, 0, 2, 1, -0.5, 0, 1, 1.5]
 
         totals = [-3 0. 3 -3 0 1 -3 -3 3 -2 0 -3 -2 -2 0 1]
         @test VMES.strategic_totals_to_df(totals, methodsandstrats).ESIF == [1, 2, 1, 4/3, 0, 2, 1, -0.5, 0, 1, 1.5]
+
+        #test seeding
+        seed = abs(rand(Int))
+        df1 = calc_esif(10, dcc, [([score, star],
+                        [ElectorateStrategy(hon, 11), ElectorateStrategy(ExpScale(3),11)], [bullet, hon, starvatemplate])],
+                        11, 5, iidnoise=0.1, seed=seed)
+        df2 = calc_esif(10, dcc, [([score, star],
+                        [ElectorateStrategy(hon, 11), ElectorateStrategy(ExpScale(3),11)], [bullet, hon, starvatemplate])],
+                        11, 5, iidnoise=0.1, seed=seed)
+        @test df1 == df2
     end
 
     @testset "Strategy Statistics" begin

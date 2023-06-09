@@ -58,12 +58,6 @@ function vse_bullet_chart(df::DataFrame)
         Guide.colorkey(title="Method", labels=["Choose One", "Choosen One + Top 2","Approval","Approval + Top 2","RCV","STAR","Ranked Robin"]))
 end
 
-function bulletfraction(estratstr::String, nvot::Int)
-    r = r"(BulletVote:)([0-9]+)"
-    nbullet = parse(Int, match(r, estratstr).captures[2])
-    return nbullet*100/nvot
-end
-
 """
 vadf = VMES.calc_vses(100, VMES.dcc,
     repeat([VMES.plurality, VMES.pluralitytop2, VMES.approval, VMES.approvaltop2, VMES.rcv, VMES.star], 21),
@@ -267,6 +261,9 @@ df = VMES.calc_esif(1000, VMES.dcc,
     [([VMES.star], [VMES.ElectorateStrategy(VMES.ExpScale(x), 31) for x in 1:0.2:5],
         [VMES.ExpScale(x) for x in 1:0.2:5])],
     31, 5)
+df = VMES.calc_esif(10, VMES.dcc,
+    [([VMES.sss, VMES.mesdroop, VMES.teadroop, VMES.ashare, VMES.allocatedscore, VMES.ashfr, VMES.ashr, VMES.asr, VMES.s5h, VMES.s5hr, VMES.s5hwr], [VMES.ElectorateStrategy(VMES.ExpScale(2^x), 25) for x in 1:0.4:4.2],
+        [VMES.ExpScale(2^x) for x in 1:0.2:4.2])], 25, 10, nwinners=4, iter_per_update=1)
 """
 function esif_contour_chart(df, parsefunc)
     df.estrat = string.(df[!,"Base Strategy"])

@@ -27,10 +27,11 @@ Each tuple in the vector is of the form (methods, basestrats, strats)
 - `iidnoise::Real` The amount of uncorrelated polling noise, give in standard deviations.
 - `nwinners::Integer` The number of winners of each election.
 """
-function calc_esif(niter::Integer, vmodel::VoterModel, methodsandstrats::Vector, nvot::Integer, ncand::Integer,
-                   correlatednoise::Number=0.1, iidnoise::Number=0, nwinners::Integer=1)
-    calc_stratmetric(ESIF(), niter, vmodel, methodsandstrats, nvot, ncand, correlatednoise,
-                     iidnoise, nwinners, ())
+function calc_esif(niter::Integer, vmodel::VoterModel, methodsandstrats::Vector, nvot::Integer, ncand::Integer;
+                   correlatednoise::Number=0.1, iidnoise::Number=0, nwinners::Integer=1, iter_per_update=0,
+                   seed::Integer=abs(rand(Int)))
+    calc_stratmetric(ESIF(), niter, vmodel, methodsandstrats, nvot, ncand; correlatednoise=correlatednoise,
+                     iidnoise=iidnoise, nwinners=nwinners, iter_per_update=iter_per_update, seed=seed)
     #=methodsandstrats = buildfromtemplatesforesif(methodsandstrats, hypot(correlatednoise, iidnoise))
     m_and_s_abstain = [(methods, basestrats, cat(abstain, strats, dims=1))
                         for (methods, basestrats, strats) in methodsandstrats]

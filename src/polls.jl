@@ -71,22 +71,24 @@ The strategies can be any combinations of electorate strategies and voter strate
 strats and methods must be vectors of the same length.
 """
 function administerpolls(electorate, (strats, methods),
-                        correlatednoise::Number, iidnoise::Number, samplesize=nothing)
+                        correlatednoise::Number, iidnoise::Number, samplesize=nothing,
+                        rng=Random.Xoshiro())
     noisevector = correlatednoise .* randn(size(electorate,1))
-    administerpolls(electorate, (strats, methods), noisevector, iidnoise, samplesize)
+    administerpolls(electorate, (strats, methods), noisevector, iidnoise, samplesize, rng)
 end
 
 function administerpolls(electorate, (strats, methods),
-                         noisevector::Vector{Float64}, iidnoise::Number, samplesize=nothing)
+                         noisevector::Vector{Float64}, iidnoise::Number, samplesize=nothing,
+                         rng=Random.Xoshiro())
     infodict = Dict()
     if samplesize === nothing
         respondants = nothing
     else
-        respondants = rand(1:size(electorate,2), samplesize) #drawing WITH replacement
+        respondants = rand(rng, 1:size(electorate,2), samplesize) #drawing WITH replacement
     end
     for i in eachindex(strats, methods)
         for spec in neededinfo(strats[i], methods[i])
-            addinfo!(infodict, electorate, spec, noisevector, iidnoise, respondants)
+            addinfo!(infodict, electorate, spec, noisevector, iidnoise, respondants, rng)
         end
     end
     infodict[nothing] = nothing
@@ -108,16 +110,16 @@ Conduct the specified poll and add it to polldict, along with the polls required
  - `respondants`: The indicies of the subset of the electorate that will be polled.
                     If set to nothing the whole electorate will be polled.
 """
-function addinfo!(infodict, electorate, spec::InfoSpec, noisevector, iidnoise=0, respondants=nothing)
+function addinfo!(infodict, electorate, spec::InfoSpec, noisevector, iidnoise=0, respondants=nothing, rng=Random.Xoshiro())
     if haskey(infodict, spec)
         return infodict[spec]
     end
     for dependency in neededinfo(spec)
         if !haskey(infodict, dependency)
-            addinfo!(infodict, electorate, dependency, noisevector, iidnoise, respondants)
+            addinfo!(infodict, electorate, dependency, noisevector, iidnoise, respondants, rng)
         end
     end
-    addspecificinfo!(infodict, electorate, spec, noisevector, iidnoise, respondants)
+    addspecificinfo!(infodict, electorate, spec, noisevector, iidnoise, respondants, rng)
 end
 
 """
@@ -125,13 +127,13 @@ end
 
 Add the specified poll to infodict
 """
-function addspecificinfo!(infodict, electorate, spec::PollSpec, noisevector, iidnoise, respondants)
+function addspecificinfo!(infodict, electorate, spec::PollSpec, noisevector, iidnoise, respondants, rng=Random.Xoshiro())
     if respondants === nothing
         ballots = castballots(electorate, spec.estrat, spec.method, infodict)
     else
         ballots = castballots(electorate, spec.estrat, spec.method, infodict)[:,respondants]
     end
-    infodict[spec] = makepoll(ballots, spec, noisevector, iidnoise)
+    infodict[spec] = makepoll(ballots, spec, noisevector, iidnoise, rng)
 end
 
 """
@@ -139,10 +141,10 @@ end
 
 Convert the ballots into polling information with added noise.
 """
-function makepoll(ballots, spec::BasicPollSpec, noisevector, iidnoise)
+function makepoll(ballots, spec::BasicPollSpec, noisevector, iidnoise, rng=Random.Xoshiro())
     unscaledresults = tabulate(ballots, spec.method)
     results = unscaledresults .* pollscalefactor(spec.method, ballots)
-    results += noisevector + iidnoise .* randn(size(results))
+    results += noisevector + iidnoise .* randn(rng, size(results))
     clamp!(results, 0, 1)
     return results
 end
@@ -152,15 +154,15 @@ end
 
 Add the data for spec to infodict.
 """
-function addspecificinfo!(infodict, electorate, spec::WinProbSpec, noisevector, iidnoise, respondants)
+function addspecificinfo!(infodict, electorate, spec::WinProbSpec, noisevector, iidnoise, respondants, rng=Random.Xoshiro())
     infodict[spec] = betaprobs(infodict[spec.pollspec], spec.uncertainty)
 end
 
-function addspecificinfo!(infodict, electorate, spec::TieForTwoSpec, noisevector, iidnoise, respondants)
+function addspecificinfo!(infodict, electorate, spec::TieForTwoSpec, noisevector, iidnoise, respondants, rng=Random.Xoshiro())
     infodict[spec] = tiefortwoprob(infodict[spec.winprobspec])
 end
 
-function addspecificinfo!(infodict, electorate, spec::CrudeTop3Spec, noisevector, iidnoise, respondants)
+function addspecificinfo!(infodict, electorate, spec::CrudeTop3Spec, noisevector, iidnoise, respondants, rng=Random.Xoshiro())
     infodict[spec] = crudetop3probs(infodict[spec.pollspec], spec.uncertainty)
 end
 

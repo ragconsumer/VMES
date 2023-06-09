@@ -56,7 +56,7 @@ end
 function tabulate(ballots, method::RCV, nwinners::Int)
     ncand, nvot = size(ballots)
     optionally_fradulent_rcv_tabulation(
-        ballots, nwinners, method.quota(nvot, nwinners),false, zeros(Float64, ncand), 0.0)
+        ballots, nwinners, method.quota(nvot, nwinners),false, zeros(Float64, ncand), 0.0, Random.Xoshiro())
 end
 
 """
@@ -71,7 +71,7 @@ Quota is the support needed to be elected. It should be a number of voters if sc
 or a fraction of voters if scale_results is true.
 """
 function optionally_fradulent_rcv_tabulation(ballots, nwinners::Integer, quota, scale_results::Bool,
-                                             noisevector, iidnoise=0.)
+                                             noisevector, iidnoise=0., rng=Random.Xoshiro())
     ncand, nvot = size(ballots)
     piles = [Set{Int}() for _ in 1:ncand]
     weights = ones(Float64, size(ballots, 2))
@@ -94,7 +94,7 @@ function optionally_fradulent_rcv_tabulation(ballots, nwinners::Integer, quota, 
         transfertotal = sum(noisytransfers)
         cl = collect(candsleft)
         noisytransfers[cl] += transfertotal .* (noisevector[cl] + (iidnoise == 0 ?
-        zeros(Float64, length(cl)) : iidnoise .* randn(length(candsleft))))
+                            zeros(Float64, length(cl)) : iidnoise .* randn(rng, length(candsleft))))
         clamptosum!(noisytransfers, transfertotal, transfertotal)
         #perform the remainder of the tabulation round legitmately, based on potentially bogus numbers
         totals[cl] += noisytransfers[cl]
@@ -471,8 +471,8 @@ end
 
 function positiveweightapproval!(electedcands, weights, ballots)
     ncand, nvot = size(ballots)
-    weight_totals = [cand ∈ electedcands ? -1 :
-                        sum((weights[i] for i in 1:nvot if ballots[cand, i] > 0), init=0) for cand in 1:ncand]
+    weight_totals = [cand ∈ electedcands ? -1. :
+                        sum((weights[i] for i in 1:nvot if ballots[cand, i] > 0), init=0.) for cand in 1:ncand]
     winner = argmax(weight_totals)
     push!(electedcands, winner)
     for i in eachindex(weights)
@@ -512,7 +512,7 @@ function tabulate(ballots, method::MES, nwinners::Int)
         weight_totals = [cand ∈ electedcands ? -1 :
                         sum((weights[i] for i in 1:nvot if ballots[cand, i] > 0), init=0) for cand in 1:ncand]
         if any(weight_totals .> quota)
-            rhos = ones(Float64, ncand)
+            rhos = [2.0 for _ in 1:ncand]
             for cand in 1:ncand
                 if weight_totals[cand] > quota
                     weightsandscores = [(weights[b], ballots[cand, b]) for b in 1:nvot if weights[b] > 0 && ballots[cand, b] > 0]

@@ -27,14 +27,14 @@ struct CondorcetPollSpec <: PollSpec
     estrat::ElectorateStrategy
 end
 
-function makepoll(ballots, spec::CondorcetPollSpec, noisevector, iidnoise)
+function makepoll(ballots, spec::CondorcetPollSpec, noisevector, iidnoise, rng=Random.Xoshiro())
     ncand, nvot = size(ballots)
     unscaledcompmat = pairwisematrix(ballots)
     compmat = unscaledcompmat ./ nvot
     for topcand in 1:ncand
         for leftcand in 1:ncand
             compmat[leftcand, topcand] += (noisevector[leftcand] - noisevector[topcand]
-                                           + iidnoise*randn())
+                                           + iidnoise*randn(rng))
         end
     end
     clamp!(compmat, 0, 1)
@@ -49,10 +49,10 @@ end
 
 RCVPollSpec(estrat::ElectorateStrategy, nwinners=1) = RCVPollSpec(rcv, estrat, nwinners)
 
-function makepoll(ballots, spec::RCVPollSpec, noisevector, iidnoise)
+function makepoll(ballots, spec::RCVPollSpec, noisevector, iidnoise, rng=Random.Xoshiro())
     optionally_fradulent_rcv_tabulation(
         ballots, spec.nwinners,
         spec.method.quota(size(ballots, 2), spec.nwinners)/size(ballots, 2),
-        true, noisevector, iidnoise)
+        true, noisevector, iidnoise, rng)
 end
     
