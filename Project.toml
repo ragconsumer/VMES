@@ -22,6 +22,7 @@ Distributions = "0.25"
 Gadfly = "1"
 LogExpFunctions = "0.3"
 Optim = "1"
+PProf = "2"
 ProfileView = "1"
 julia = "1"
 
