@@ -116,3 +116,28 @@ end
 function vote(voter, strat::InformedStrategy, method::OneRoundMethod, infodict::Dict)
     vote(voter, strat, method, infodict[neededinfo(strat, method)])
 end
+
+"""
+    getfrontrunners(pollcolumn, n)
+
+Return a vector with the n candidates with the highest values in pollcolumn.
+
+The first-place candidate appears first, etc.
+"""
+function getfrontrunners(pollcolumn, n)
+    frontrunners = indices_by_sorted_values(pollcolumn[1:n])
+    fr_values = pollcolumn[frontrunners]
+    for i in n+1:length(pollcolumn)
+        if pollcolumn[i] > fr_values[end]
+            j = 1
+            while pollcolumn[i] <= fr_values[j]
+                j += 1
+            end
+            frontrunners[j+1:n] = frontrunners[j:n-1]
+            fr_values[j+1:n] = fr_values[j:n-1]
+            frontrunners[j] = i
+            fr_values[j] = pollcolumn[i]
+        end
+    end
+    return frontrunners
+end

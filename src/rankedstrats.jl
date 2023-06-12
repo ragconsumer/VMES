@@ -36,3 +36,24 @@ end
 
 vote(voter, strat::CondorcetVA, method::VotingMethod) = vote(voter, hon, method)
 condorcetva = CondorcetVA()
+
+struct IRVPositional <: InformedStrategy
+    neededinfo
+    pushover::Bool
+    hardcore_po::Bool
+    eager_compromise::Bool
+end
+
+function vote(voter, strat::IRVPositional, _::VotingMethod, (finalists, top3))
+    fave = top3[argmax(voter[top3])] #the voter's favorite of the top 3
+    ballot = vote(voter, hon, irv)
+    if fave == finalists[2]
+        if (fave == top3[2] || strat.eager_compromise) && voter[finalists[1]] < voter[top3[3]] #compromise
+            ballot[fave], ballot[top3[3]] = ballot[top3[3]], ballot[fave]
+        elseif fave == top3[1] && strat.pushover && (voter[finalists[1]] < voter[top3[3]] || strat.hardcore_po)
+            #use the third-place finisher as a pushover
+            return vote([i==top3[3] ? voter[fave] + 0.001 : voter[i] for i in eachindex(voter)], hon, irv)
+        end
+    end
+    return ballot
+end

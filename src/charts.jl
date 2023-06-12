@@ -325,3 +325,40 @@ function parse_template_arg(str)
     r = r"Any\[(\d*\.\d*)\]"
     parse(Float64, match(r, str).captures[1])
 end
+
+
+
+#=
+df75 = VMES.calc_esif(50000, VMES.dcc,
+[([VMES.plurality], [VMES.ElectorateStrategy(VMES.hon, 75)], [VMES.plurality_pos_template, VMES.pluralityvatemplate]),
+([VMES.approval], [VMES.ElectorateStrategy(VMES.hon, 75)],
+    [VMES.approval_pos_template, VMES.approvalvatemplate,
+    VMES.PositionalStratTemplate(VMES.PluralityPositional, VMES.BasicPollSpec, VMES.approval, 2, 0, [])]),
+([VMES.pluralitytop2], [VMES.ElectorateStrategy(VMES.hon, 75)],
+    [VMES.pluralitytop2_pos_template(false, false, false),
+    VMES.pluralitytop2_pos_template(true, false, false),
+    VMES.pluralitytop2_pos_template(true, true, false),
+    VMES.pluralitytop2_pos_template(false, false, true),
+    VMES.pluralitytop2vatemplate]),
+([VMES.approvaltop2], [VMES.ElectorateStrategy(VMES.hon, 75)],
+    [VMES.approvaltop2_pos_template(false, false),
+    VMES.approvaltop2_pos_template(true, false),
+    VMES.approvaltop2_pos_template(false, true),
+    VMES.approvaltop2_pos_template(true, true),
+    VMES.approvaltop2vatemplate]),
+([VMES.irv], [VMES.ElectorateStrategy(VMES.hon, 75)],
+    [VMES.irv_pos_template(false, false, false),
+    VMES.irv_pos_template(true, false, false),
+    VMES.irv_pos_template(true, true, false),
+    VMES.irv_pos_template(false, false, true),
+    VMES.irv_pos_template(true, false, true),
+    VMES.irvvatemplate]),
+([VMES.star], [VMES.ElectorateStrategy(VMES.hon, 75)],
+    [VMES.star_pos_template(false, false),
+    VMES.star_pos_template(true, false),
+    VMES.star_pos_template(false, true),
+    VMES.star_pos_template(true, true),
+    VMES.starvatemplate])
+],
+75, 5, correlatednoise=0.05)
+=#

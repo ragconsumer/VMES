@@ -24,6 +24,17 @@ struct CrudeTop3Spec <: ProbSpec
     uncertainty::Float64
 end
 
+"""
+A specification that identifies the top finalnumcands in the final round
+and the top penultimatenumcands in the next-to-last round, sorted by placements
+but without any data related to margins of victory.
+"""
+struct PositionSpec <: InfoSpec
+    pollspec::PollSpec
+    finalnumcands::Int
+    penultimatenumcands::Int
+end
+
 function Base.:(==)(x::PS, y::PS) where PS <: PollSpec
     x.method == y.method && x.estrat == y.estrat
 end
@@ -38,6 +49,10 @@ end
 
 function Base.:(==)(x::CrudeTop3Spec, y::CrudeTop3Spec)
     x.pollspec == y.pollspec && x.uncertainty == y.uncertainty
+end
+
+function Base.:(==)(x::PositionSpec, y::PositionSpec)
+    x.pollspec == y.pollspec && x.finalnumcands == y.finalnumcands && x.penultimatenumcands == y.penultimatenumcands
 end
 
 function Base.hash(x::PS, h::UInt) where PS <: PollSpec
@@ -61,6 +76,13 @@ function Base.hash(x::CrudeTop3Spec, h::UInt)
     return h
 end
 
+function Base.hash(x::PositionSpec, h::UInt)
+    h = hash(x.pollspec, h)
+    h = hash(x.finalnumcands, h)
+    h = hash(x.penultimatenumcands, h)
+    return h
+end
+
 """
     administerpolls(electorate, (strats, methods),
                         correlatednoise::Number, iidnoise::Number, samplesize=nothing)
@@ -73,7 +95,7 @@ strats and methods must be vectors of the same length.
 function administerpolls(electorate, (strats, methods),
                         correlatednoise::Number, iidnoise::Number, samplesize=nothing,
                         rng=Random.Xoshiro())
-    noisevector = correlatednoise .* randn(size(electorate,1))
+    noisevector = correlatednoise .* randn(rng, size(electorate,1))
     administerpolls(electorate, (strats, methods), noisevector, iidnoise, samplesize, rng)
 end
 
@@ -166,6 +188,21 @@ function addspecificinfo!(infodict, electorate, spec::CrudeTop3Spec, noisevector
     infodict[spec] = crudetop3probs(infodict[spec.pollspec], spec.uncertainty)
 end
 
+function addspecificinfo!(infodict, electorate, spec::PositionSpec,
+                          noisevector, iidnoise, respondants, rng=Random.Xoshiro())
+    if spec.penultimatenumcands == 0
+        infodict[spec] = getfrontrunners(infodict[spec.pollspec][:, end], spec.finalnumcands)
+    else
+        if size(infodict[spec.pollspec],2) > 1
+            infodict[spec] = (getfrontrunners(infodict[spec.pollspec][:, end], spec.finalnumcands),
+                            getfrontrunners(infodict[spec.pollspec][:, end-1], spec.penultimatenumcands))
+        else #if there's only one round of tabulation, use that round for everything
+            infodict[spec] = (getfrontrunners(infodict[spec.pollspec][:, 1], spec.finalnumcands),
+                            getfrontrunners(infodict[spec.pollspec][:, 1], spec.penultimatenumcands))
+        end
+    end
+end
+
 """
     neededinfo(strat::VoterStrategy, ::VotingMethod)
 
@@ -179,6 +216,7 @@ neededinfo(spec::PollSpec) = neededinfo(spec.estrat, spec.method)
 neededinfo(spec::WinProbSpec) = Set([spec.pollspec])
 neededinfo(spec::CrudeTop3Spec) = Set([spec.pollspec])
 neededinfo(spec::TieForTwoSpec) = Set([spec.winprobspec])
+neededinfo(spec::PositionSpec) = Set([spec.pollspec])
 
 function neededinfo(estrat::ElectorateStrategy, method::VotingMethod)
     reduce(union, [neededinfo(strat, method) for strat in estrat.stratlist])
@@ -202,6 +240,7 @@ The factor that all poll results must be multipied by to lie in [0, 1].
 pollscalefactor(::ApprovalMethod, ballots) = 1/size(ballots, 2)
 pollscalefactor(method::ScoringMethod, ballots) = 1/(method.maxscore*size(ballots, 2))
 pollscalefactor(::BordaCount, ballots) = 1/((size(ballots,1) - 1)*size(ballots, 2))
+pollscalefactor(method::Top2Method, ballots) = pollscalefactor(method.basemethod, ballots)
 
 """
     clamptosum!(a::AbstractArray{<:Real}, total=1, high=1)

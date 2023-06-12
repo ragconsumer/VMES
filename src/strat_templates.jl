@@ -69,6 +69,22 @@ irvvatemplate = ApprovalWinProbTemplate(IRVVA, 0.1, TopMeanThreshold(0.1), [0.0]
 approvaltop2vatemplate = ApprovalWinProbTemplate(ApprovalTop2VA, 0.1, TopMeanThreshold(0.1), [])
 pluralitytop2vatemplate = ApprovalWinProbTemplate(PluralityTop2VA, 0.1, TopMeanThreshold(0.1), [])
 
+struct PositionalStratTemplate <: VoterStratTemplate
+    basestrat::Union{DataType, Function}
+    pollspecfunc::Union{DataType, Function}
+    method::VotingMethod
+    finalnumcands::Int
+    penultimatenumcands::Int
+    stratargs::Vector{Any}
+end
+
+plurality_pos_template = PositionalStratTemplate(PluralityPositional, BasicPollSpec, plurality, 2, 0, [])
+approval_pos_template = PositionalStratTemplate(ApprovalPositional, BasicPollSpec, approval, 2, 0, [])
+pluralitytop2_pos_template(args...) = PositionalStratTemplate(PluralityTop2Positional, Top2PollSpec, pluralitytop2, 2, 3, collect(args))
+approvaltop2_pos_template(args...) = PositionalStratTemplate(ApprovalTop2Positional, Top2PollSpec, approvaltop2, 2, 3, collect(args))
+irv_pos_template(args...) = PositionalStratTemplate(IRVPositional, RCVPollSpec, irv, 2, 3, collect(args))
+star_pos_template(args...) = PositionalStratTemplate(STARPositional, STARPollSpec, star, 2, 3, collect(args))
+
 """
 Contains the information needed to conventiently construct an electorate strategy.
 
@@ -151,6 +167,10 @@ end
 function vsfromtemplate(template::CrudeTop3Template, pollestrat::ElectorateStrategy, pollinguncertainty::Float64)
     return template.basestrat(
         CrudeTop3Spec(BasicPollSpec(template.method, pollestrat), pollinguncertainty + template.extrauncertainty), template.stratargs...)
+end
+function vsfromtemplate(template::PositionalStratTemplate, pollestrat::ElectorateStrategy, _::Float64)
+    ps = PositionSpec(template.pollspecfunc(template.method, pollestrat), template.finalnumcands, template.penultimatenumcands)
+    return template.basestrat(ps, template.stratargs...)
 end
 vsfromtemplate(template::VoterStrategy, _, _) = template
 

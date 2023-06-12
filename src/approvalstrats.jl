@@ -84,3 +84,32 @@ function vote(voter, ::PluralityVA, method::VotingMethod, winprobs)
     ballot[argmax((voter[i]-expectedvalue)*winprobs[i] for i in eachindex(voter, winprobs))] = topballotmark(voter, method)
     return ballot
 end
+
+struct PluralityPositional <: InformedStrategy
+    neededinfo
+end
+
+"""
+    vote(voter, ::PluralityPositional, method::VotingMethod, frontrunners::Vector{Int})
+
+Bullet vote for the best frontrunner.
+"""
+function vote(voter, ::PluralityPositional, method::VotingMethod, frontrunners::Vector{Int})
+    ballot = zeros(Int, length(voter))
+    ballot[frontrunners[argmax(voter[frontrunners])]] = topballotmark(voter, method)
+    return ballot
+end
+
+struct ApprovalPositional <: InformedStrategy
+    neededinfo
+end
+
+"""
+    vote(voter, ::ApprovalPositional, method::VotingMethod, frontrunners::Vector{Int})
+
+Vote for the best frontrunner and all all candidates who are at least as good.
+"""
+function vote(voter, ::ApprovalPositional, method::VotingMethod, frontrunners::Vector{Int})
+    threshold = maximum(voter[frontrunners])
+    [voter[i] < threshold ? 0 : topballotmark(voter, method) for i in eachindex(voter)]
+end

@@ -158,3 +158,65 @@ function vote(voter, strat::STARVA, method::ScoringMethod, winprobs)
     end
     return ballot
 end
+
+struct STARPositional <: InformedStrategy
+    neededinfo
+    favorite_betrayal::Bool
+    pushover::Bool
+end
+
+function threepointscale(util, middlescore, maxscore, low, middle, high)
+    if util <= low
+        0
+    elseif util >= high
+        maxscore
+    elseif util < middle
+        round(Int, middlescore*(util-low)/(middle-low))
+    else
+        round(Int, middlescore + (maxscore-middlescore)*(util-middle)/(high-middle))
+    end
+end
+
+function vote(voter, strat::STARPositional, method::VotingMethod, (finalists, top3))
+    fave = top3[argmax(voter[top3])] #the voter's favorite of the top 3
+    middleutility = maximum(voter[cand] for cand in top3 if cand != fave)
+    minutility = minimum(voter[cand] for cand in top3)
+    ncand = length(voter)
+    if fave == finalists[1]
+        return vote(voter, hon, method)
+    elseif fave == top3[3] || (fave == top3[2] && voter[top3[1]] >= voter[top3[3]])
+        #honest strategic exaggeration
+        return threepointscale.(voter, 1, method.maxscore, minutility, middleutility, voter[fave])
+    elseif fave == top3[2]
+        if strat.favorite_betrayal
+            #favorite betrayal
+            ballot = Vector{Int}(undef, length(voter))
+            for cand in 1:ncand
+                if cand == fave
+                    ballot[cand] = 1
+                else
+                    ballot[cand] = roundtoscore(voter[cand], minutility, middleutility, method.maxscore)
+                end
+            end
+            return ballot
+        else
+            return threepointscale.(voter, 4, method.maxscore, minutility, middleutility, voter[fave])
+        end
+    else #here we have fave == top3[1]
+        if strat.pushover
+            ballot = Vector{Int}(undef, length(voter))
+            for cand in 1:ncand
+                if cand == top3[3]
+                    ballot[cand] = 4
+                else
+                    ballot[cand] = roundtoscore(voter[cand], finalists[1], voter[fave], method.maxscore)
+                end
+            end
+            return ballot
+        elseif voter[top3[3]] >= finalists[1]
+            return threepointscale.(voter, 4, method.maxscore, minutility, middleutility, voter[fave])
+        else
+            return threepointscale.(voter, 1, method.maxscore, minutility, middleutility, voter[fave])
+        end
+    end
+end
