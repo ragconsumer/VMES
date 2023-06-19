@@ -38,5 +38,6 @@ include("cid.jl")
 include("fixedelectorates.jl")
 include("metrictools.jl")
 include("charts.jl")
+include("voter_model_statistics.jl")
 
 end

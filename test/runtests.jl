@@ -828,4 +828,10 @@ end
         @test dfs[1][!,"Top 2 Spread"] == [2/3, 7/6]
         @test dfs[1][!,"Top 3 Spread"] ≈ [13/6, 16/6]
     end
+
+    @testset "Voter Model Statistics" begin
+        @test !VMES.hascondorcetcycle([1;2;;2;1])
+        @test !VMES.hascondorcetcycle([1;2;3;;2;3;1;;3;3;3])
+        @test VMES.hascondorcetcycle([1;2;3;;2;3;1;;3;1;2])
+    end
 end
