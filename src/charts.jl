@@ -261,9 +261,11 @@ df = VMES.calc_esif(1000, VMES.dcc,
     [([VMES.star], [VMES.ElectorateStrategy(VMES.ExpScale(x), 31) for x in 1:0.2:5],
         [VMES.ExpScale(x) for x in 1:0.2:5])],
     31, 5)
-df = VMES.calc_esif(10, VMES.dcc,
-    [([VMES.sss, VMES.mesdroop, VMES.teadroop, VMES.ashare, VMES.allocatedscore, VMES.ashfr, VMES.ashr, VMES.asr, VMES.s5h, VMES.s5hr, VMES.s5hwr], [VMES.ElectorateStrategy(VMES.ExpScale(2^x), 25) for x in 1:0.4:4.2],
-        [VMES.ExpScale(2^x) for x in 1:0.2:4.2])], 25, 10, nwinners=4, iter_per_update=1)
+df = VMES.calc_esif(10000, VMES.dcc,
+    [([VMES.sss, VMES.mesdroop, VMES.teadroop, VMES.ashare, VMES.allocatedscore,
+            VMES.ashfr, VMES.ashr, VMES.asr, VMES.s5h, VMES.s5hr, VMES.s5hwr, VMES.scv],
+        [VMES.ElectorateStrategy(VMES.ExpScale(2^x), 25) for x in 1:0.4:4.2],
+        [VMES.ExpScale(2^x) for x in 1:0.2:4.2])], 25, 10, nwinners=4, iter_per_update=100)
 """
 function esif_contour_chart(df, parsefunc)
     df.estrat = string.(df[!,"Base Strategy"])
@@ -360,5 +362,35 @@ df75 = VMES.calc_esif(50000, VMES.dcc,
     VMES.star_pos_template(true, true),
     VMES.starvatemplate])
 ],
-75, 5, correlatednoise=0.05)
+75, 5, correlatednoise=0.05, iter_per_update=1000)
+=#
+
+#=
+df = VMES.calc_esif(500000, VMES.dcc,
+[([VMES.plurality], [VMES.ElectorateStrategy(VMES.hon, 75)], [VMES.plurality_pos_template]),
+([VMES.approval], [VMES.ElectorateStrategy(VMES.hon, 75)],
+    [VMES.approval_pos_template, 
+    VMES.PositionalStratTemplate(VMES.PluralityPositional, VMES.BasicPollSpec, VMES.approval, 2, 0, [])]),
+([VMES.pluralitytop2], [VMES.ElectorateStrategy(VMES.hon, 75)],
+    [VMES.pluralitytop2_pos_template(false, false, false),
+    VMES.pluralitytop2_pos_template(true, false, false),
+    VMES.pluralitytop2_pos_template(true, true, false)]),
+([VMES.approvaltop2], [VMES.ElectorateStrategy(VMES.hon, 75)],
+    [VMES.approvaltop2_pos_template(false, false),
+    VMES.approvaltop2_pos_template(true, false),
+    VMES.approvaltop2_pos_template(false, true),
+    VMES.approvaltop2_pos_template(true, true)]),
+([VMES.irv], [VMES.ElectorateStrategy(VMES.hon, 75)],
+    [VMES.irv_pos_template(false, false, false),
+    VMES.irv_pos_template(true, false, false),
+    VMES.irv_pos_template(true, true, false),
+    VMES.irv_pos_template(false, false, true),
+    VMES.irv_pos_template(true, false, true)]),
+([VMES.star], [VMES.ElectorateStrategy(VMES.hon, 75)],
+    [VMES.star_pos_template(false, false),
+    VMES.star_pos_template(true, false),
+    VMES.star_pos_template(false, true),
+    VMES.star_pos_template(true, true)])
+],
+75, 5, correlatednoise=0.05, iter_per_update=1000)
 =#

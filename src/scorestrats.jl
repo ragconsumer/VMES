@@ -209,7 +209,7 @@ function vote(voter, strat::STARPositional, method::VotingMethod, (finalists, to
                 if cand == top3[3]
                     ballot[cand] = 4
                 else
-                    ballot[cand] = roundtoscore(voter[cand], finalists[1], voter[fave], method.maxscore)
+                    ballot[cand] = roundtoscore(voter[cand], voter[finalists[1]], voter[fave], method.maxscore)
                 end
             end
             return ballot

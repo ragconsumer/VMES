@@ -79,16 +79,19 @@ end
 
 function vote(voter, strat::ApprovalTop2Positional, method::VotingMethod, (finalists, top3))
     fave = top3[argmax(voter[top3])] #the voter's favorite of the top 3
-    threshold = maximum(voter[top3])
-    #vote for the best of the top 3 by default
-    ballot = [voter[i] < threshold ? 0 : topballotmark(voter, method) for i in eachindex(voter)]
-    #decide whether to vote for the third place candidate, either as a pushover or honestly.
-    if fave == finalists[2] && ((strat.pushover && fave == top3[1]) || voter[top3[3]] >= voter[finalists[1]])
-        ballot[top3[3]] = topballotmark(voter, method)
+    if fave == finalists[2] && voter[top3[3]] > voter[finalists[1]]
+        #set the approval threshold to the utility of the voter's second choice among the top 3
+        threshold = voter[top3[3]] 
+    else
+        threshold = maximum(voter[top3])
     end
-    if strat.favorite_betrayal && fave == finalists[2] && fave == top3[2] && voter[top3[1]] < voter[top3[3]]
-        ballot[fave] = 0
+    ballot = [voter[i] < threshold ? 0 : topballotmark(voter, method) for i in eachindex(voter)]
+    #decide whether to vote for the third place candidate as a pushover
+    if fave == finalists[2] && strat.pushover && fave == top3[1]
         ballot[top3[3]] = topballotmark(voter, method)
+    elseif strat.favorite_betrayal && fave == finalists[2] && fave == top3[2] && voter[top3[1]] < voter[top3[3]]
+        ballot[fave] = 0
+        #ballot[top3[3]] = topballotmark(voter, method)
     end
     return [ballot; vote(voter, hon, irv)]
 end

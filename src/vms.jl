@@ -312,3 +312,6 @@ function tabulatefromcompmat(compmat::Matrix{T}, ::RankedRobin) where T <: Real
                     for lcand in 1:n]
     return [compmat wincounts finalmargins]
 end
+
+#Score Cascading Vote; given here instead of the mw file since it uses Score
+@namevm scv = CascadingScoreMethod(score, droop, 5)

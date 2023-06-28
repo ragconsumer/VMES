@@ -617,3 +617,104 @@ function tabulate(ballots, method::TEA, nwinners::Int)
     end
     return results
 end
+
+struct CascadingScoreMethod <: ScoringMethod
+    orderingmethod
+    quota
+    maxscore::Int
+end
+
+struct CascadingRankedMethod <: RankedMethod
+    orderingmethod
+    quota
+end
+
+CascadingVoteMethod = Union{CascadingRankedMethod, CascadingScoreMethod}
+
+"""
+    cascade_one_vote!(supportersets::Vector{AbstractSet}, ballot, voter_index, candsleft)
+
+Have the voter offer votes to all of their top-rated remaining candidates.
+
+Adds voter to the relevant supportersets.
+"""
+function cascade_one_vote!(supportersets::Vector{<:AbstractSet}, ballot, voter_index, candsleft)
+    supportlevel = maximum(ballot[c] for c in candsleft)
+    for c in candsleft
+        if ballot[c] == supportlevel
+            push!(supportersets[c], voter_index)
+        end
+    end
+end
+
+function tabulate(ballots, method::CascadingVoteMethod, nwinners::Int)
+    ncand, nvot = size(ballots)
+    quota::Float64 = method.quota(nvot, nwinners)
+    weights = ones(Float64, nvot)
+    supportersets = [BitSet() for _ in 1:ncand]
+    #supportersets[cand] contains every voter who's offering a vote to cand
+    orderingresults::Array{Float64} = tabulate(ballots, method.orderingmethod, 1)
+    total_pref_order = placementsfromtab(orderingresults, method.orderingmethod)
+    results = orderingresults
+    candsleft = BitSet(1:ncand)
+    winners = BitSet()
+    nelected = 0
+    neliminated = 0
+    for i in 1:nvot
+        cascade_one_vote!(supportersets, ballots[:, i], i, candsleft)
+    end
+    while nelected < nwinners && length(candsleft) + nelected > nwinners
+        offeredvotecounts = zeros(Float64, ncand)
+        for c in candsleft
+            for v in supportersets[c]
+                offeredvotecounts[c] += weights[v]
+            end
+        end
+        results = hcat(results, [c ∈ winners ? quota : offeredvotecounts[c] for c in 1:ncand])
+        if any(offeredvotecounts .>= quota)
+            #elect someone
+            quotamakers = [c for c in candsleft if offeredvotecounts[c] >= quota]
+            results = hcat(results, [c ∈ quotamakers ? orderingresults[c] : 0. for c in 1:ncand])
+
+            #find a winner based on the total preferences order
+            winneri = 1
+            while total_pref_order[winneri] ∉ quotamakers
+                winneri += 1
+            end
+            winner = total_pref_order[winneri]
+
+            delete!(candsleft, winner)
+            nelected += 1
+            push!(winners, winner)
+
+            if nelected == nwinners
+                results = hcat(results, [c ∈ winners ? quota : offeredvotecounts[c] for c in 1:ncand])
+            end
+
+            weightfactor = (offeredvotecounts[winner] - quota)/offeredvotecounts[winner]
+            for voter in supportersets[winner]
+                weights[voter] *= weightfactor
+                cascade_one_vote!(supportersets, ballots[:, voter], voter, candsleft)
+            end
+        else
+            #eliminate someone
+            loseri = ncand
+            while total_pref_order[loseri] ∉ candsleft
+                loseri -= 1
+            end
+            loser = total_pref_order[loseri]
+            delete!(candsleft, loser)
+            neliminated += 1
+            for voter in supportersets[loser]
+                cascade_one_vote!(supportersets, ballots[:, voter], voter, candsleft)
+            end
+        end
+    end
+    if nelected < nwinners
+        #ensure the winners have higher totals than the losers
+        for c in candsleft
+            results[c, end] = max(results[c, end], 1)
+        end
+    end
+    return results
+end

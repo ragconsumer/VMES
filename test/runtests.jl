@@ -274,6 +274,8 @@ end
                 VMES.star, ([4,5], [5,4,2])) == [0,0,0,1,5,5]
     @test vote([1,2,3,4,5,6], VMES.STARPositional(nothing, false, true),
                 VMES.star, ([4,5], [5,4,2])) == [0,4,0,0,5,5] 
+    @test vote([1,2,3,4,5,6], VMES.STARPositional(nothing, false, false),
+                VMES.star, ([4,5], [5,4,2])) == [0,0,0,1,5,5] 
 end
 
 @testset "Electorate Strategies and Templates" begin
@@ -482,6 +484,13 @@ end
                                                           55 39 39 39
                                                           25 25 25 5
                                                           50 30 10 2]
+    end
+
+    @testset "SCV" begin
+        @test VMES.tabulate(VMES.scoretest1, scv, 2) ≈  [70.0 10.0 70.0 6.0 6.0
+                                                         55.0 0.0 0.0 0.0 5.0
+                                                         25.0 5.0 0.0 5.0 0.0
+                                                         50.0 10.0 50.0 4.0 4.0]
     end
     @testset "MES and TEA" begin
         @test VMES.mes_min_rho([(0.5, 4), (1., 5), (1., 3)], 2) ≈ 3/16
