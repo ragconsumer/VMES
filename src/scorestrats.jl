@@ -61,13 +61,14 @@ end
 @namestrat topbotem = ArbitraryScoreScale(maximum, minimum, 1, 0, equalmeasureforscore)
 @namestrat topmeanem = ArbitraryScoreScale(maximum, Statistics.mean, 1, -1, equalmeasureforscore)
 @namestrat topmeanround = ArbitraryScoreScale(maximum, Statistics.mean, 1, -1, roundtoscore)
+@namestrat topbotround = ArbitraryScoreScale(maximum, minimum, 1, 0, equalmeasureforscore)
 
 scorebystd(nstds) = ArbitraryScoreScale(mean_plus_std, Statistics.mean, nstds, -nstds, equalmeasureforscore)
 
-ExpScale(exp) = ExpScale(exp, topmeanem)
+ExpScale(exp) = ExpScale(exp, topbotround)
 
 function Base.show(io::IO, s::ExpScale)
-    if s.basescale == topmeanem
+    if s.basescale == topbotround
         print(io, "ex", s.exponent)
     else
         print(io, "ex", s.exponent, s.basescale)

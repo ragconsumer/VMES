@@ -11,6 +11,9 @@ import Statistics, Distributions, Random
     for n in 1:4
         meandiff = Statistics.mean(Statistics.mean(VMES.make_electorate(VMES.DimModel(n), 5,5) .^ 2) for i in 1:1000)
         @test 0.9*(2n) < meandiff < 1.1*(2n)
+        cstd = 0.5
+        meandiff = Statistics.mean(Statistics.mean(VMES.make_electorate(VMES.DimModel(n, cstd), 5,5) .^ 2) for i in 1:1000)
+        @test 0.9*(1+cstd^2)*n < meandiff < 1.1*(1+cstd^2)*n
     end
 
     @test VMES.make_electorate(BaseQualityNoiseModel(VMES.TestModel([1.;2;;3;4]), 0, 0), 2, 2)[1,1] == 1
@@ -160,9 +163,9 @@ end
     @test vote([-12,-1,0,0,0,2,10], scorebystd(1), star) == [0,2,3,3,3,4,5]
     @test vote([-12,-1,0,0,0,2,10], scorebystd(0.4), star) == [0,1,3,3,3,5,5]
     @test vote([-12,-1,0,0,0,2,10], topmeanem, star) == [0,2,3,3,3,3,5]
-    @test vote([0,0.8,1,2,3,4,4.2,5], ExpScale(1), star) == [0,0,1,2,3,4,5,5]
-    @test vote([0,0.8,1,2,3,4,4.2,5], ExpScale(2), star) == [0,0,0,0,2,3,4,5]
-    @test vote([0,0.8,1,2,3,4,4.2,5], ExpScale(5), star) == [0,0,0,0,0,1,2,5]
+    @test vote([0,0.8,1,2,3,4,4.2,5], ExpScale(1, topmeanem), star) == [0,0,1,2,3,4,5,5]
+    @test vote([0,0.8,1,2,3,4,4.2,5], ExpScale(2, topmeanem), star) == [0,0,0,0,2,3,4,5]
+    @test vote([0,0.8,1,2,3,4,4.2,5], ExpScale(5, topmeanem), star) == [0,0,0,0,0,1,2,5]
 end
 
 @testset "Viability-Aware Strategies" begin
@@ -351,6 +354,13 @@ end
     @test VMES.pairwisematrix(VMES.centersqueeze1) == [0 5 5
                                                            6 0 7
                                                            6 4 0]
+    @test VMES.pairwisematrix(VMES.centersqueeze1, ones(Float64, 11), Set(1)) == [-1 -1 -1
+                                                                                  1 0 7
+                                                                                  1 4 0]
+    @test VMES.pairwisematrix(VMES.centersqueeze1, 
+        [1,1,1,1,1,1,1,.5,.5,.5,.5]) == [0 5 5
+                                        4 0 7
+                                        4 2 0]
     @test VMES.hontabulate(VMES.centersqueeze1, minimax)==[0 5 5 -1
                                                             6 0 7 1
                                                             6 4 0 -3]
@@ -486,12 +496,53 @@ end
                                                           50 30 10 2]
     end
 
+    tab = VMES.hontabulate(VMES.centersqueeze1, VMES.allocatedrankedrobin, 2)
+    @test tab[:, end] == [2.0, 2.0, -1.0]
+    @test tab[3, 5] == 4*5.5/9
+    @test VMES.hontabulate(VMES.cycle2, VMES.allocatedrankedrobin, 3)[:, end] == [-1, 0, 3, 4]
+
     @testset "SCV" begin
         @test VMES.tabulate(VMES.scoretest1, scv, 2) ≈  [70.0 10.0 70.0 6.0 6.0
                                                          55.0 0.0 0.0 0.0 5.0
                                                          25.0 5.0 0.0 5.0 0.0
                                                          50.0 10.0 50.0 4.0 4.0]
+        @test VMES.tabulate(VMES.scoretest1, scvr, 2) ≈ [70.0  0.0  15.0  10.0  5.0  10.0  70.0  6.0  6.0  6.0
+                                                        55.0  0.0   0.0  10.0  5.0   0.0   0.0  0.0  5.0  0.0
+                                                        25.0  5.0   5.0   0.0  5.0   5.0   0.0  5.0  0.0  0.0
+                                                        50.0  0.0  10.0  10.0  0.0  10.0  50.0  4.0  4.0  6.0]
+        @test VMES.tabulate(VMES.scoretest2, scvr, 2) ≈ [50.0  0.0  10.0  10.0  10.0  10.0  50.0  6.0  6.0  6.0
+                                                        20.0  0.0   0.0  10.0  10.0   0.0   0.0  4.0  4.0  6.0
+                                                        35.0  5.0   5.0   0.0  10.0   5.0   0.0  5.0  5.0  0.0
+                                                        25.0  5.0   5.0   0.0   0.0   5.0   0.0  5.0  0.0  0.0]
+        @test VMES.tabulate(VMES.scoretest2, VMES.scvr, 3) ≈ [50.0  0.0  10.0  10.0  10.0  10.0  50.0  4.0   0.0  4.0   0.0  4.0  4.0
+                                                            20.0  0.0   0.0  10.0  10.0   0.0   0.0  6.0  20.0  6.0  20.0  4.0  4.0
+                                                            35.0  5.0   5.0   0.0  10.0   5.0  35.0  5.0  35.0  4.0   0.0  4.0  4.0
+                                                            25.0  5.0   5.0   0.0   0.0   5.0  25.0  5.0  25.0  1.0   0.0  1.0  0.0]
     end
+
+    
+
+    @testset "Approval-based PR methods" begin
+        ballots = [1;1;1;0;;1;1;1;0;;1;1;1;0;;0;1;1;0;;0;0;0;1]
+        @test VMES.tabulate(ballots, approval) == [3;4;4;1;;]
+        @test VMES.tabulate(ballots, spav,4 ) ≈ [3 1.5 1 1
+                                                  4 4 4 4
+                                                  4 2 2 2
+                                                  1 1 1 1]
+        @test VMES.tabulate([0;0;0;0;;0;0;0;0], spav,2 ) ≈ [0 0
+                                                            0 0
+                                                            0 0
+                                                            0 0]
+        @test VMES.tabulate(ballots, spav_sl,4 ) ≈ [3 1 3/5 3/5
+                                                     4 4 4 4
+                                                     4 4/3 4/3 4/3
+                                                     1 1 1 1]
+        @test VMES.tabulate(ballots, spav_msl,4 ) ≈ [3/1.4 1 3/5 3/5
+                                                    4/1.4 4/1.4 4/1.4 4/1.4
+                                                    4/1.4 4/3 4/3 4/3
+                                                    1/1.4 1/1.4 1/1.4 1/1.4]
+    end
+
     @testset "MES and TEA" begin
         @test VMES.mes_min_rho([(0.5, 4), (1., 5), (1., 3)], 2) ≈ 3/16
         @test VMES.mes_min_rho([(1., 3), (0.5, 4), (1., 5)], 2) ≈ 3/16
@@ -788,7 +839,7 @@ end
         @test methodinputs == [repeat([star], 8); repeat([rcv], 3)]
 
         #test one_esif_iter
-        methodsandstrats = [([score, star], [ElectorateStrategy(topmeanem,3), ElectorateStrategy(ExpScale(3),3)], [topmeanem, bullet]),
+        methodsandstrats = [([score, star], [ElectorateStrategy(topmeanem,3), ElectorateStrategy(ExpScale(3, topmeanem),3)], [topmeanem, bullet]),
                             ([rcv], [ElectorateStrategy(bullet,3)], [abstain, bullet, hon])]
         electorate = [0;1;2;-10;;2;0;1;-10;;1;2;0;-10] #symmetric reverse spoiler scenario (also a Condorcet cycle)
         utiltotals = VMES.one_stratmetric_iter(VMES.ESIF(), VMES.TestModel(electorate), methodsandstrats, 3, 4, 0, 0, 1, ())
@@ -804,10 +855,10 @@ end
         #for _ in 1:20
             seed = abs(rand(Int))
             df1 = calc_esif(10, dcc, [([score, star],
-                            [ElectorateStrategy(hon, 11), ElectorateStrategy(ExpScale(3),11)], [bullet, hon, starvatemplate])],
+                            [ElectorateStrategy(hon, 11), ElectorateStrategy(ExpScale(3, topmeanem),11)], [bullet, hon, starvatemplate])],
                             11, 5, iidnoise=0.1, seed=seed)
             df2 = calc_esif(10, dcc, [([score, star],
-                            [ElectorateStrategy(hon, 11), ElectorateStrategy(ExpScale(3),11)], [bullet, hon, starvatemplate])],
+                            [ElectorateStrategy(hon, 11), ElectorateStrategy(ExpScale(3, topmeanem),11)], [bullet, hon, starvatemplate])],
                             11, 5, iidnoise=0.1, seed=seed)
             #@test df1 == df2
         #end

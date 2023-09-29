@@ -286,6 +286,26 @@ function pairwisematrix(ballots_or_utils)
     return mat
 end
 
+function pairwisematrix(ballots_or_utils, weights::Vector{<:Real}, electedcands=Set())
+    ncands, nvot = size(ballots_or_utils)
+    mat = Matrix{Float64}(undef, ncands, ncands)
+    for topcand in 1:ncands
+        for leftcand in 1:ncands
+            if leftcand in electedcands
+                mat[leftcand, topcand] = -1
+            elseif topcand in electedcands
+                mat[leftcand, topcand] = 1
+            else
+                mat[leftcand, topcand] = sum(
+                    (weights[i] for i in 1:nvot
+                        if ballots_or_utils[leftcand, i] > ballots_or_utils[topcand, i]),
+                    init=0)
+            end
+        end
+    end
+    return mat
+end
+
 function tabulate(ballots, method::CondorcetCompMatOnly)
     tabulatefromcompmat(pairwisematrix(ballots), method)
 end
@@ -314,4 +334,5 @@ function tabulatefromcompmat(compmat::Matrix{T}, ::RankedRobin) where T <: Real
 end
 
 #Score Cascading Vote; given here instead of the mw file since it uses Score
-@namevm scv = CascadingScoreMethod(score, droop, 5)
+@namevm scv = CascadingScoreMethod(score, droop, 5, false, false)
+@namevm scvr = CascadingScoreMethod(score, droop, 5, true, true)

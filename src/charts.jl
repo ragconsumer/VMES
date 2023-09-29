@@ -266,6 +266,10 @@ df = VMES.calc_esif(10000, VMES.dcc,
             VMES.ashfr, VMES.ashr, VMES.asr, VMES.s5h, VMES.s5hr, VMES.s5hwr, VMES.scv],
         [VMES.ElectorateStrategy(VMES.ExpScale(2^x), 25) for x in 1:0.4:4.2],
         [VMES.ExpScale(2^x) for x in 1:0.2:4.2])], 25, 10, nwinners=4, iter_per_update=100)
+df = VMES.calc_esif(1000, VMES.dcc,
+    [([VMES.spav, VMES.spav_sl, VMES.spav_msl, VMES.mesapproval, VMES.mesapprovaldroop],
+        [VMES.ElectorateStrategy(VMES.TopMeanThreshold(x), 25) for x in 0.5:0.05:1],
+        [VMES.TopMeanThreshold(x) for x in 0.5:0.05:1])], 25, 10, nwinners=4, iter_per_update=10)
 """
 function esif_contour_chart(df, parsefunc)
     df.estrat = string.(df[!,"Base Strategy"])

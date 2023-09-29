@@ -427,6 +427,35 @@ end
     asreweight!, sssweight, weightedpriority
 )
 
+struct AllocatedRankedRobin <: RankedMethod
+    quota
+    reweight!
+    weightgiven
+    quotapriority
+end
+
+function tabulate(ballots, method::AllocatedRankedRobin, nwinners::Int)
+    ncand, nvot = size(ballots)
+    weights = ones(Float64, nvot)
+    electedcands = Set{Int}()
+    winnerdisplays = zeros(Float64, ncand)
+    results = zeros(Float64, ncand, 0)
+    while length(electedcands) < nwinners
+        compmat = pairwisematrix(ballots, weights, electedcands)
+        round = tabulatefromcompmat(compmat, RankedRobin())
+        round[:, end] = [i in electedcands ? winnerdisplays[i] : round[i, end] for i in 1:ncand]
+        results = hcat(results, round)
+        new_winner, winnertotal = addwinner!(electedcands, round[:, end])
+        winnerdisplays[new_winner] = winnertotal
+        method.reweight!(weights, method, ballots, new_winner, nwinners, electedcands)
+    end
+    results = hcat(results, [c in electedcands ? winnerdisplays[c] : -1. for c in 1:ncand])
+    return results
+end
+
+@namevm allocatedrankedrobin = AllocatedRankedRobin(exacthare, asreweight!, allweight, justscore)
+@namevm arrdroop = AllocatedRankedRobin(droop, asreweight!, allweight, justscore)
+
 """
     mes_min_rho(weightsandscores, quota)
 
@@ -500,6 +529,8 @@ end
 
 @namevm mes = MES(5, exacthare, positiveweightapproval!)
 @namevm mesdroop = MES(5, droop, positiveweightapproval!)
+@namevm mesapproval = MES(1, exacthare, positiveweightapproval!)
+@namevm mesapprovaldroop = MES(1, droop, positiveweightapproval!)
 
 function tabulate(ballots, method::MES, nwinners::Int)
     ncand, nvot = size(ballots)
@@ -622,11 +653,15 @@ struct CascadingScoreMethod <: ScoringMethod
     orderingmethod
     quota
     maxscore::Int
+    elect_runoff::Bool
+    elim_runoff::Bool
 end
 
 struct CascadingRankedMethod <: RankedMethod
     orderingmethod
     quota
+    elect_runoff::Bool
+    elim_runoff::Bool
 end
 
 CascadingVoteMethod = Union{CascadingRankedMethod, CascadingScoreMethod}
@@ -640,9 +675,11 @@ Adds voter to the relevant supportersets.
 """
 function cascade_one_vote!(supportersets::Vector{<:AbstractSet}, ballot, voter_index, candsleft)
     supportlevel = maximum(ballot[c] for c in candsleft)
-    for c in candsleft
-        if ballot[c] == supportlevel
-            push!(supportersets[c], voter_index)
+    if supportlevel > 0
+        for c in candsleft
+            if ballot[c] == supportlevel
+                push!(supportersets[c], voter_index)
+            end
         end
     end
 end
@@ -656,6 +693,12 @@ function tabulate(ballots, method::CascadingVoteMethod, nwinners::Int)
     orderingresults::Array{Float64} = tabulate(ballots, method.orderingmethod, 1)
     total_pref_order = placementsfromtab(orderingresults, method.orderingmethod)
     results = orderingresults
+    
+    if method.elect_runoff || method.elim_runoff
+        compmat = pairwisematrix(ballots)
+        results = hcat(results, compmat)
+    end
+
     candsleft = BitSet(1:ncand)
     winners = BitSet()
     nelected = 0
@@ -671,18 +714,32 @@ function tabulate(ballots, method::CascadingVoteMethod, nwinners::Int)
             end
         end
         results = hcat(results, [c ∈ winners ? quota : offeredvotecounts[c] for c in 1:ncand])
-        if any(offeredvotecounts .>= quota)
+        quotamakers = [c for c in candsleft if offeredvotecounts[c] >= quota]
+        if length(quotamakers) > 0
             #elect someone
-            quotamakers = [c for c in candsleft if offeredvotecounts[c] >= quota]
+            
             results = hcat(results, [c ∈ quotamakers ? orderingresults[c] : 0. for c in 1:ncand])
 
             #find a winner based on the total preferences order
-            winneri = 1
-            while total_pref_order[winneri] ∉ quotamakers
-                winneri += 1
+            finalist1i = 1
+            while total_pref_order[finalist1i] ∉ quotamakers
+                finalist1i += 1
             end
-            winner = total_pref_order[winneri]
-
+            if method.elect_runoff && length(quotamakers) >= 2
+                finalist2i = finalist1i + 1
+                while total_pref_order[finalist2i] ∉ quotamakers
+                    finalist2i += 1
+                end
+                f1, f2 = total_pref_order[finalist1i], total_pref_order[finalist2i]
+                if compmat[f1, f2] >= compmat[f2, f1]
+                    winner = f1
+                else
+                    winner = f2
+                end
+            else
+                winner = total_pref_order[finalist1i]
+            end
+            
             delete!(candsleft, winner)
             nelected += 1
             push!(winners, winner)
@@ -702,7 +759,20 @@ function tabulate(ballots, method::CascadingVoteMethod, nwinners::Int)
             while total_pref_order[loseri] ∉ candsleft
                 loseri -= 1
             end
-            loser = total_pref_order[loseri]
+            if method.elim_runoff && length(candsleft) >= 2
+                loser2i = loseri - 1
+                while total_pref_order[loser2i] ∉ candsleft
+                    loser2i -= 1
+                end
+                l1, l2 = total_pref_order[loseri], total_pref_order[loser2i]
+                if compmat[l1, l2] <= compmat[l2, l1]
+                    loser = l1
+                else
+                    loser = l2
+                end
+            else
+                loser = total_pref_order[loseri]
+            end
             delete!(candsleft, loser)
             neliminated += 1
             for voter in supportersets[loser]
@@ -715,6 +785,41 @@ function tabulate(ballots, method::CascadingVoteMethod, nwinners::Int)
         for c in candsleft
             results[c, end] = max(results[c, end], 1)
         end
+        union!(winners, candsleft)
+    end
+    if method.elect_runoff || method.elim_runoff
+        #the final line of the results may be deceptive if we don't add this
+        results = hcat(results, [c ∈ winners ? quota : 0. for c in 1:ncand])
+    end
+    return results
+end
+
+"""
+Sequential Proportional Approval Voting
+
+weightfunc is a function that takes the number of winners a ballot has voted for
+as its argument and returns the weight of that ballot
+"""
+struct SPAV <: ApprovalMethod
+    weightfunc::Function
+end
+
+@namevm spav = SPAV(x -> 1/(x+1)) #d'Hondt/Jefferson reweighting
+@namevm spav_sl = SPAV(x -> 1/(2x+1)) #Sainte-Laguë reweighting
+@namevm spav_msl = SPAV(x -> x==0 ? 5/7 : 1/(2x+1)) #modified Sainte-Laguë reweighting
+
+function tabulate(ballots, method::SPAV, nwinners::Int)
+    winners = BitSet()
+    ncand = size(ballots, 1)
+    results = Array{Float64}(undef, ncand, 0)
+    while length(winners) < nwinners
+        totals = [c in winners ? -1 : Float64(sum(
+                        (method.weightfunc(sum(ballot[d] for d in winners; init=0))
+                    for ballot in eachslice(ballots, dims=2) if ballot[c] > 0), init=0))
+                for c in 1:ncand]
+        winner = argmax(totals)
+        results = hcat(results, [c in winners ? results[c,end] : totals[c] for c in 1:ncand])
+        push!(winners, winner)
     end
     return results
 end

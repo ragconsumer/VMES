@@ -10,9 +10,13 @@ struct ImpartialCulture <: VoterModel
     distribution
 end
 
+"""
+A basic spatial model.
+"""
 struct DimModel <: SpatialModel
-    ndims
-    dimweights
+    ndims::Int
+    voterdimstds
+    candidatedimstds
 end
 
 struct BaseQualityNoiseModel <: VoterModel
@@ -58,7 +62,9 @@ Base.setindex!(e::SeededElectorate, v::Float64, I::Vararg{Int,N}) where N = (e.d
 getseed(e::SeededElectorate) = e.seed
 getseed(::Any) = 0
 
-DimModel(dim::Int) = DimModel(dim, ones(Int, dim))
+DimModel(dim::Int) = DimModel(dim, ones(Int, dim), ones(Int, dim))
+DimModel(dim::Int, weights::Vector{<:Real}) = DimModel(dim, weights, weights)
+DimModel(dim::Int, candstd::Real) = DimModel(dim, ones(Int, dim), repeat([candstd], dim))
 
 ic = ImpartialCulture(randn)
 
@@ -108,13 +114,13 @@ Utilities are minus the cartesian distance between a voter and a candidate.
 """
 function make_electorate(model::DimModel, nvot::Int, ncand::Int, seed::Int)
     rng = Random.Xoshiro(seed)
-    voterpositions = randn(rng, model.ndims, nvot)
-    candpositions = randn(rng, model.ndims, ncand)
+    voterpositions = randn(rng, model.ndims, nvot).*model.voterdimstds
+    candpositions = randn(rng, model.ndims, ncand).*model.candidatedimstds
     utilmatrix = Matrix{Float64}(undef, ncand, nvot)
     for (i, voter) in enumerate(eachcol(voterpositions))
         for (j, cand) in enumerate(eachcol(candpositions))
             utilmatrix[j, i] = -sqrt(
-                sum((model.dimweights[k]*(voter[k] - cand[k]))^2 for k in eachindex(model.dimweights)))
+                sum(((voter[k] - cand[k]))^2 for k in 1:model.ndims))
         end
     end
     return SeededElectorate(utilmatrix, seed)
