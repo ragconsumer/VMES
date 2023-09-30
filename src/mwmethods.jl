@@ -11,6 +11,13 @@ Calculate the exact Hare quota
 """
 exacthare(nvot, nwinners) = nvot/nwinners
 
+"""
+    zeroquota(_, _)
+
+A quota of 0. Used as a hack for making block methods.
+"""
+zeroquota(_, _) = 0
+
 "Single Nontransferable Vote (limited voting)"
 struct SNTV <: PluralityMethod
 end
@@ -425,6 +432,11 @@ end
 @namevm s5hwr = ScorePRTemplate(
     5, droop, weightedscorecount, allrunoffs, weightedstarrunoff,
     asreweight!, sssweight, weightedpriority
+)
+
+@namevm blockstar = ScorePRTemplate(
+    5, zeroquota, weightedscorecount, allrunoffs, weightedstarrunoff,
+    asreweight!, allweight, justscore
 )
 
 struct AllocatedRankedRobin <: RankedMethod

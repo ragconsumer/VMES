@@ -694,6 +694,11 @@ end
     @test highs == [5; 5; 10]
     @test qs == [1.5; 0; 0; 1.5;; 46/12;30/12;36/12;26/12;; 10;7.5;9;5]
 
+    qs, highs, avgs = VMES.simple_mw_winner_quality(electorate, [[1,2,3],[1,2,4],[1,3,4],[2,3,4]])
+    @test highs == [5; 5; 5]
+    @test avgs ≈ [46/16, 46/16, 46/16]
+    @test qs == [1.5; 0; 0; 1.5;; 46/12;30/12;36/12;26/12;; 10;7.5;9;5]
+
     @testset "CID" begin
         @test VMES.normalizedUtilDeviation([0,10],1) == -1
         @test VMES.utilDeviation([0,10],1) == -5

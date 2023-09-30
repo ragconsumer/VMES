@@ -78,7 +78,7 @@ function one_vse_iter(vmodel::VoterModel,
         winnerutils = [Statistics.mean(socialutils[w] for w in winners) for winners in winnersets]
         return winnerutils, [bestutil], [avgutil]
     else
-        return mw_winner_quality(electorate, winnersets, nwinners)
+        return simple_mw_winner_quality(electorate, winnersets)
     end
 end
 
@@ -120,5 +120,31 @@ function mw_winner_quality(electorate, winnersets, nwinners)
     methodresults = [medians means bests]
     avgs = [avgmedian, avgmean, avgbest]
     highs = [bestutil, bestutil, highbest]
+    return methodresults, highs, avgs
+end
+
+"""
+    simple_mw_winner_quality(electorate, winnersets)
+
+Determine the quality of sets of possible winners.
+
+Like mw_winner_quality but uses the single-winner VSE scale
+(magic best single winner to random winner) as the scale for everything
+"""
+function simple_mw_winner_quality(electorate, winnersets)
+    socialutils = Statistics.mean(electorate, dims=2)
+    bestutil = maximum(socialutils)
+    meanutil = Statistics.mean(electorate)
+    #Determine the quality of the sets of winners
+    bests = map(winnersets) do winnerset
+        Statistics.mean(maximum(v[w] for w in winnerset) for v in eachslice(electorate, dims=2))
+    end
+    means = [Statistics.mean(socialutils[w] for w in winners) for winners in winnersets]
+    medians = map(winnersets) do winnerset
+        Statistics.mean(Statistics.median(v[w] for w in winnerset) for v in eachslice(electorate, dims=2))
+    end
+    methodresults = [medians means bests]
+    avgs = [meanutil, meanutil, meanutil]
+    highs = [bestutil, bestutil, bestutil]
     return methodresults, highs, avgs
 end
