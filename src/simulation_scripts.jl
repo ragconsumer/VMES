@@ -23,3 +23,28 @@ VMES.esif_contour_chart(gdf[1], VMES.parse_expscale)
         [VMES.ElectorateStrategy(VMES.ExpScale(4), 29)],
         [[VMES.ExpScale(2^x) for x in 1:0.2:4.6]; VMES.hon;[VMES.TopMeanThreshold(x) for x in 0.5:0.02:1]])],
         29, 10, nwinners=4, iter_per_update=100)
+
+@time df2 = VMES.calc_vses(3000, VMES.dcc,
+    repeat([VMES.blockstar, VMES.ashare, VMES.allocatedscore,
+        VMES.scv, VMES.sss, VMES.s5hr, VMES.tea, VMES.scvr], 41),
+    [repeat([VMES.ElectorateStrategy(VMES.hon, 100)], 8)
+    reduce(vcat,([repeat([VMES.ElectorateStrategy(VMES.ExpScale(2^x), 100)], 8) for x in 0.4:0.2:4.2]))
+    reduce(vcat,([repeat([
+        VMES.ESTemplate(100, [[(VMES.bullet, 1, 20), (VMES.hon, 21, 40), (VMES.ExpScale(2^x), 41, 100)]])], 8)
+    for x in 0.4:0.2:4.2]))],
+    100, 10, 4)
+
+@time df = VMES.calc_vses(3000, VMES.dcc,
+    repeat([VMES.blockstar, VMES.ashare, VMES.allocatedscore,
+        VMES.scv, VMES.sss, VMES.s5hr, VMES.tea, VMES.scvr], 20),
+    reduce(vcat,([repeat([VMES.ElectorateStrategy(VMES.ExpScale(2^x), 100)], 8) for x in 0.4:0.2:4.2])),
+    100, 10, 4)
+
+@time df2 = VMES.calc_vses(3000, VMES.dcc,
+    repeat([VMES.blockstar, VMES.ashare, VMES.allocatedscore,
+        VMES.scv, VMES.sss, VMES.s5hr, VMES.tea, VMES.scvr], 20),
+    reduce(vcat,([repeat([
+            VMES.ESTemplate(100, [[(VMES.bullet, 1, 20), (VMES.hon, 21, 40), (VMES.ExpScale(2^x), 41, 100)]])], 8)
+        for x in 0.4:0.2:4.2])),
+    100, 10, 4)
+    

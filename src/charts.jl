@@ -83,6 +83,15 @@ function vse_va_chart(df::DataFrame)
         Scale.color_discrete_manual("#D55E00","#E69F00","#0072B2","#56B4E9","#009E73","#F0E442"))
 end
 
+function vse_expstrat_mw_chart(df::DataFrame, metric::String)
+    df2 = copy(df)
+    df2.Method = string.(df2.Method)
+    df2.estrat = string.(df2[!,"Electorate Strategy"])
+    df2.exp = parse_expscale.(df2.estrat)
+    #metrics = ["Mean Winner VSE", "Median Winner VSE", "Favorite Winner VSE"]
+    plot(df2, x=:exp, y=metric*" Winner VSE", color=:Method, Geom.line, Geom.point)
+end
+
 function vafraction(estratstr::String, nvot::Int)
     r = r"VA(\[.*\])?:([0-9]+)"
     nva = parse(Int, match(r, estratstr).captures[2])
@@ -254,6 +263,17 @@ function paper_bullet_fraction_chart(df)
          Coord.cartesian(xmin=minimum(distancedf.ncand)), Guide.colorkey(title="Method", labels=[
             "Plurality", "Plurality Top 2","Approval","Approval Top 2","IRV","Score","STAR","Minimax"]),
         Scale.color_discrete_manual("#D55E00","#E69F00","#0072B2","#56B4E9","#009E73","#CC79A7","#F0E442","black"))
+end
+
+function cid_expstrat_chart(df::DataFrame)
+    df2 = copy(df)
+    df2.Method = string.(df2.Method)
+    df2.estrat = string.(df2[!,"Electorate Strategy"])
+    df2.exp = parse_expscale.(df2.estrat)
+    df2.x = (df.Bucket.-1)/(df[1, "Total Buckets"]-1)
+    plot(df2, x=:x, y=:CID, color=:exp, Geom.line, Scale.color_discrete)
+    #metrics = ["Mean Winner VSE", "Median Winner VSE", "Favorite Winner VSE"]
+    #plot(df2, x=:exp, y=metric*" Winner", color=:Method, Geom.line, Geom.point)
 end
 
 """

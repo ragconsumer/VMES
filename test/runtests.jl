@@ -420,6 +420,11 @@ end
                                                    5 5 9
                                                    4 4 0
                                                    6 6 6]
+        @test tabulate(VMES.manybulletranked, buirv, 3) == [7 7 7 
+                                                          4 4 0
+                                                          6 6 6
+                                                          20 20 24
+                                                          3 0 0]
     end
     @testset "Score PR" begin
         @test VMES.weightedscorecount([5;4;0;;0;2;5], [1,0.5], sss) == [5, 5, 2.5]

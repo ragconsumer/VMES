@@ -26,6 +26,11 @@ end
 struct RCV <: RankedChoiceVoting
     quota
 end
+
+struct BottomsUpIRV <: RankedChoiceVoting
+end
+@namevm buirv = BottomsUpIRV()
+
 InstantRunoffVoting = RankedChoiceVoting #Single-winner is implemented as a special case of STV.
 SingleTransferableVote = RankedChoiceVoting
 @namevm rcv = RCV(droop)
@@ -140,6 +145,29 @@ function optionally_fradulent_rcv_tabulation(ballots, nwinners::Integer, quota, 
 end
 
 tabulate(ballots, method::RCV) = tabulate(ballots, method::RCV, 1)
+
+function tabulate(ballots, method::BottomsUpIRV, nwinners::Int)
+    ncand, nvot = size(ballots)
+    piles = [Set{Int}() for _ in 1:ncand]
+    candsleft = BitSet(1:ncand)
+    tosort = 1:nvot
+    totals = rcv_resort!(piles, ballots, 1:nvot, candsleft, ones(Int, nvot))
+    results = totals
+    while length(candsleft) > nwinners
+        fewestvotes = minimum(totals[c] for c in candsleft)
+        if length(filter(c -> totals[c]==fewestvotes, candsleft)) == 0
+            print(totals, fewestvotes)
+        end
+        loser = maximum(filter(c -> totals[c]==fewestvotes, candsleft))
+        delete!(candsleft, loser)
+        tosort = piles[loser]
+        transfers = rcv_resort!(piles, ballots, piles[loser], candsleft, ones(Int, nvot))
+        totals += transfers
+        totals[loser] = 0
+        results = hcat(results, totals)
+    end
+    return results
+end
 
 function placementsfromtab(tabulation::AbstractArray, method::RankedChoiceVoting, nwinners=1)
     if size(tabulation, 2) == 1
