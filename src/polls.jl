@@ -35,6 +35,15 @@ struct PositionSpec <: InfoSpec
     penultimatenumcands::Int
 end
 
+"""
+A specification that identifies and sorts the frontrunners and provides the full
+pairwise comparison matrix to the strategy function. Provides a (compmat, frontrunners) tuple.
+"""
+struct CompMatPosSpec <: InfoSpec
+    pollspec::PollSpec
+    numfrontrunners::Int
+end
+
 function Base.:(==)(x::PS, y::PS) where PS <: PollSpec
     x.method == y.method && x.estrat == y.estrat
 end
@@ -53,6 +62,10 @@ end
 
 function Base.:(==)(x::PositionSpec, y::PositionSpec)
     x.pollspec == y.pollspec && x.finalnumcands == y.finalnumcands && x.penultimatenumcands == y.penultimatenumcands
+end
+
+function Base.:(==)(x::CompMatPosSpec, y::CompMatPosSpec)
+    x.pollspec == y.pollspec && x.numfrontrunners == y.numfrontrunners
 end
 
 function Base.hash(x::PS, h::UInt) where PS <: PollSpec
@@ -80,6 +93,12 @@ function Base.hash(x::PositionSpec, h::UInt)
     h = hash(x.pollspec, h)
     h = hash(x.finalnumcands, h)
     h = hash(x.penultimatenumcands, h)
+    return h
+end
+
+function Base.hash(x::CompMatPosSpec, h::UInt)
+    h = hash(x.pollspec, h)
+    h = hash(x.numfrontrunners, h)
     return h
 end
 
@@ -203,6 +222,12 @@ function addspecificinfo!(infodict, electorate, spec::PositionSpec,
     end
 end
 
+function addspecificinfo!(infodict, electorate, spec::CompMatPosSpec,
+                          noisevector, iidnoise, respondants, rng=Random.Xoshiro())
+    frontrunners = getfrontrunners(infodict[spec.pollspec][:, end], spec.numfrontrunners)
+    infodict[spec] = (infodict[spec.pollspec], frontrunners)
+end
+
 """
     neededinfo(strat::VoterStrategy, ::VotingMethod)
 
@@ -217,6 +242,7 @@ neededinfo(spec::WinProbSpec) = Set([spec.pollspec])
 neededinfo(spec::CrudeTop3Spec) = Set([spec.pollspec])
 neededinfo(spec::TieForTwoSpec) = Set([spec.winprobspec])
 neededinfo(spec::PositionSpec) = Set([spec.pollspec])
+neededinfo(spec::CompMatPosSpec) = Set([spec.pollspec])
 
 function neededinfo(estrat::ElectorateStrategy, method::VotingMethod)
     reduce(union, [neededinfo(strat, method) for strat in estrat.stratlist])

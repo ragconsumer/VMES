@@ -57,3 +57,18 @@ function vote(voter, strat::IRVPositional, _::VotingMethod, (finalists, top3))
     end
     return ballot
 end
+
+struct MinimaxPositional <: InformedStrategy
+    neededinfo
+end
+
+function vote(voter, _::MinimaxPositional, _::VotingMethod, (poll, frontrunners))
+    rfr = sort(frontrunners, by=x-> -voter[x]) #frontrunners ranked in preference order
+    ballot = vote(voter, hon, minimax)
+    if (poll[rfr[2],rfr[1]] > poll[rfr[1],rfr[2]] &&
+        poll[rfr[2],rfr[3]] > poll[rfr[3],rfr[2]] &&
+        poll[rfr[1],rfr[3]] > poll[rfr[3],rfr[1]])
+        ballot[[rfr[2], rfr[3]]] = ballot[[rfr[3], rfr[2]]]
+    end
+    return ballot
+end

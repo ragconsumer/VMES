@@ -278,7 +278,13 @@ end
     @test vote([1,2,3,4,5,6], VMES.STARPositional(nothing, false, true),
                 VMES.star, ([4,5], [5,4,2])) == [0,4,0,0,5,5] 
     @test vote([1,2,3,4,5,6], VMES.STARPositional(nothing, false, false),
-                VMES.star, ([4,5], [5,4,2])) == [0,0,0,1,5,5] 
+                VMES.star, ([4,5], [5,4,2])) == [0,0,0,1,5,5]
+    @test VMES.vote([1,0,2], VMES.MinimaxPositional(nothing),
+                    VMES.minimax, ([0;2;2;;1;0;1;;3;3;0], [3;1;2])) == [1,0,2]
+    @test VMES.vote([2,1,0], VMES.MinimaxPositional(nothing),
+                    VMES.minimax, ([0;2;2;;1;0;1;;3;3;0], [3;1;2])) == [2,0,1]
+    @test VMES.vote([-2,-1,2,1,0], VMES.MinimaxPositional(nothing),
+                    VMES.minimax, ([0;2;4;6;5;;1;0;3;5;4;;1;0;0;2;2;;1;0;1;0;1;;1;0;3;3;0], [5;3;4])) == [0,1,4,2,3]
 end
 
 @testset "Electorate Strategies and Templates" begin
