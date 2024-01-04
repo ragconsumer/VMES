@@ -2,6 +2,13 @@
 
 vote(voter, ::HonestVote, method::ApprovalMethod) = vote(voter, TopMeanThreshold(0.4), method)
 
+function vote(voter, ::HonestVote, method::LimitedVoting)
+    ballot = zeros(Int, length(voter))
+    favorites = indices_by_sorted_values(voter)[1:method.numvotes]
+    ballot[favorites] .= 1
+    return ballot
+end
+
 """
 threshold should be in (0, 1].
 """

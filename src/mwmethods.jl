@@ -23,6 +23,10 @@ struct SNTV <: PluralityMethod
 end
 @namevm sntv = SNTV()
 
+struct LimitedVoting <: ApprovalMethod
+    numvotes::Int
+end
+
 struct RCV <: RankedChoiceVoting
     quota
 end

@@ -134,6 +134,7 @@ end
 @testset "Basic Strategies" begin
     @test vote([1,4,3,5],hon,irv)==[0,2,1,3]
     @test vote([1,3,3,2],hon,irv)==[0,3,2,1]
+    @test vote([1,4,3,2],hon, LimitedVoting(3))==[0,1,1,1]
     @test vote([1,4,3,5],bullet,irv)==[0,0,0,3]
     @test vote([1,3,3,2],bullet,irv)==[0,3,0,0]
     @test vote([1,4,3,5],bullet,approval)==[0,0,0,1]
