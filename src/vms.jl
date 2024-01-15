@@ -336,3 +336,4 @@ end
 #Score Cascading Vote; given here instead of the mw file since it uses Score
 @namevm scv = CascadingScoreMethod(score, droop, 5, false, false)
 @namevm scvr = CascadingScoreMethod(score, droop, 5, true, true)
+@namevm stvminimax = STVCompMatMethod(minimax, droop)

@@ -512,6 +512,11 @@ end
     @test tab[:, end] == [2.0, 2.0, -1.0]
     @test tab[3, 5] == 4*5.5/9
     @test VMES.hontabulate(VMES.cycle2, VMES.allocatedrankedrobin, 3)[:, end] == [-1, 0, 3, 4]
+    @test VMES.hontabulate(VMES.manybulletranked, VMES.stvminimax, 3) == [  0.0  16.0  10.0  16.0  17.0   7.0   7.0   7.25   0.0
+                                                                            24.0   0.0  34.0  18.0  17.0   4.0   4.0   4.75  12.0
+                                                                            30.0   6.0   0.0  14.0  17.0   6.0   6.0   6.0    6.0
+                                                                            24.0  22.0  26.0   0.0  37.0  20.0  11.0  11.0   11.0
+                                                                            23.0  23.0  23.0   3.0   0.0   3.0  12.0  11.0   11.0]
 
     @testset "SCV" begin
         @test VMES.tabulate(VMES.scoretest1, scv, 2) ≈  [70.0 10.0 70.0 6.0 6.0

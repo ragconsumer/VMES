@@ -839,6 +839,73 @@ function tabulate(ballots, method::CascadingVoteMethod, nwinners::Int)
 end
 
 """
+A ranked proportional voting method that does elections and transfers like STV,
+but handles eliminations with eliminationfunciton that takes the remaining candidates
+and the pairwis comparison matrix as arguments
+
+eliminationmethod must be an instance of CondorcetCompMatOnly
+"""
+struct STVCompMatMethod <: RankedMethod
+    eliminationmethod
+    quota
+end
+
+function tabulate(ballots, method::STVCompMatMethod, nwinners::Int)
+    ncand, nvot = size(ballots)
+    quota = method.quota(nvot, nwinners)
+    piles = [Set{Int}() for _ in 1:ncand]
+    weights = ones(Float64, size(ballots, 2))
+    candsleft = BitSet(1:ncand)
+    candselected = Set{Int}()
+    tosort = 1:nvot
+    nelected = 0
+    compmat = pairwisematrix(ballots)
+    results = Float64.(compmat) #The tabulation results that will ultimately be returned
+    totals = zeros(Float64, ncand)
+    revcompmat = transpose(pairwisematrix(ballots)) #with preferences reversed to determine losers
+    while nelected < nwinners && nelected + length(candsleft) > nwinners
+        transfers = rcv_resort!(piles, ballots, tosort, candsleft, weights)
+        cl = collect(candsleft)
+        totals[cl] += transfers[cl]
+        resultline = [c in candsleft ? totals[c] : c in candselected ? float(quota) : 0.0 for c in 1:ncand]
+        results = hcat(results, resultline)
+        new_winners = [c for c in 1:ncand if totals[c] >= quota]
+        nelected += length(new_winners)
+        if isempty(new_winners) #transfer from eliminated candidates
+            fewestvotes = minimum(totals[c] for c in candsleft)
+            if length(filter(c -> totals[c]==fewestvotes, candsleft)) == 0
+                print(totals, fewestvotes)
+            end
+            candlist = collect(candsleft)
+            smallcompmat = revcompmat[candlist, candlist] #only includes remaining candidates
+            loserindex = winnersfromtab(tabulatefromcompmat(smallcompmat, method.eliminationmethod),
+                                    method.eliminationmethod)[1]
+            loser = candlist[loserindex]
+            tosort = piles[loser]
+            amount_ostensibly_transferable = totals[loser]
+            totals[loser] = 0.
+            delete!(candsleft, loser)
+        elseif nelected < nwinners #transfer excess from winners
+            tosort = Set()
+            amount_ostensibly_transferable = 0
+            for c in new_winners
+                push!(candselected, c)
+                union!(tosort, piles[c])
+                delete!(candsleft,c)
+                amount_ostensibly_transferable += totals[c] - quota
+                totals[c] = 0
+                weightfactor = (resultline[c] - quota)/resultline[c]
+                for i in piles[c]
+                    weights[i] *= weightfactor
+                end
+            end
+        end
+        #stop tabulation if further transfers are superfluous
+    end
+    return results
+end
+
+"""
 Sequential Proportional Approval Voting
 
 weightfunc is a function that takes the number of winners a ballot has voted for
