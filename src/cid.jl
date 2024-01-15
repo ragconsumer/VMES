@@ -21,21 +21,24 @@ function calc_cid(niter::Int,
                   votersperbucket::Int=3, util_change::Float64=0.05,
                   sorter=normalizedUtilDeviation, pollafterpert=false,
                   which_changes=(true, true, true, true),
-                  correlatednoise::Float64=0.1, iidnoise::Float64=0.0)
-    ITER_PER_SUM = 1000
+                  correlatednoise::Float64=0.1, iidnoise::Float64=0.0,
+                  iter_per_update=0)
     nmethod = length(methods)
-    entries = Array{Int, 3}(undef, nmethod, nbucket, min(niter, ITER_PER_SUM))
     counts = zeros(Int, nmethod, nbucket)
-    iterleft = niter
-    for _ in 1:ceil(Int, niter/ITER_PER_SUM)
-        Threads.@threads for i in 1:min(iterleft, ITER_PER_SUM)
-            entries[:, :, i] = one_cid_iter(vmodel, methods, estrats, nbucket, ncand, nwinners,
+    partialresults = zeros(Int, nmethod, nbucket, Threads.nthreads())
+    Threads.@threads for tid in 1:Threads.nthreads()
+        iterationsinthread = niter ÷ Threads.nthreads() + (tid <= niter % Threads.nthreads() ? 1 : 0)
+        for i in 1:iterationsinthread
+            if iter_per_update > 0 && i % iter_per_update == 0
+                println("Iteration $i in thread $tid")
+            end
+            partialresults[:, :, tid] += one_cid_iter(
+                vmodel, methods, estrats, nbucket, ncand, nwinners,
                 votersperbucket, util_change, sorter, pollafterpert, which_changes,
                 correlatednoise, iidnoise)
         end
-        iterleft -= ITER_PER_SUM
-        counts += dropdims(sum(entries, dims=3), dims=3)
     end
+    counts = dropdims(sum(partialresults, dims=3), dims=3)
     totalincentives = sum(counts, dims=2)
     cids = Matrix{Float64}(undef, nmethod, nbucket)
     df = DataFrame()
