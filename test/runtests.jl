@@ -806,7 +806,7 @@ end
         @test influence_cdf(df, 1/2)[1, "CS0.5"] == 0.5
         df = DataFrame(:Method=>repeat([plurality],12), :CID=>repeat([1],12), Symbol("Electorate Strategy") => repeat([nothing],12),
                         :ncand => repeat([nothing],12), Symbol("Utility Change") => repeat([nothing],12),
-                        :Bucket=>12:-1:1, Symbol("Total Buckets")=>repeat([12],12))
+                        :Bucket=>12:-1:1, Symbol("Total Buckets")=>repeat([12],12), :Iterations => repeat([nothing],12))
         @test influence_cdf(df, 1//4)[1, "CS1//4"] == 0.25
         @test total_variation_distance_from_uniform([2,2,2,2]) == 0
         @test total_variation_distance_from_uniform([1,0,1,0]) == 0.5
@@ -822,7 +822,8 @@ end
         @test distance_from_uniform(earth_movers_distance_from_uniform, df)[1, "DFU"] == 0
         df = DataFrame(:Method=>repeat([plurality],4), :CID=>[1,1,0,0], :Bucket=>[1,3,2,4],
                         Symbol("Electorate Strategy") => repeat([nothing],4),
-                        :ncand => repeat([nothing],4), Symbol("Utility Change") => repeat([nothing],4))
+                        :ncand => repeat([nothing],4), Symbol("Utility Change") => repeat([nothing],4),
+                        :Iterations => repeat([nothing],4))
         @test distance_from_uniform(total_variation_distance_from_uniform, df)[1, "DFU"] == 0.5
         @test distance_from_uniform(earth_movers_distance_from_uniform, df)[1, "DFU"] == 1/8
     end
