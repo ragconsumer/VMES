@@ -162,13 +162,13 @@ function winnersfromtab(tabulation::AbstractArray, method::VotingMethod, nwinner
 end
 
 """
-    indices_by_sorted_values(values::Vector)
+    indices_by_sorted_values(values::AbstractArray)
 
 Return a vector v with the property values[v] == sort(values, rev=true)
 
 (Up to ties, which are broken s.t. lower indicies mean greater values)
 """
-function indices_by_sorted_values(values::Vector)
+function indices_by_sorted_values(values::AbstractArray)
     result_tuples = [(i, result) for (i, result) in enumerate(values)]
     sort!(result_tuples,
             lt=((i1, r1), (i2, r2))->r1<r2 ? true : r1==r2 && i1>i2 ? true : false,

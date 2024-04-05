@@ -9,8 +9,9 @@ include("cidtools.jl")
                   votersperbucket::Int=3, util_change::Float64=0.05,
                   sorter=normalizedUtilDeviation, pollafterpert=false,
                   which_changes=(true, true, true, true),
-                  correlatednoise::Float64=0.1, iidnoise::Float64=0.0)
-
+                  correlatednoise::Float64=0.1, iidnoise::Float64=0.0;
+                  iter_per_update=0)
+                  
 Determine the Candidate Incentive Distributions of the given methods and estrats.
 """
 function calc_cid(niter::Int,
@@ -21,7 +22,7 @@ function calc_cid(niter::Int,
                   votersperbucket::Int=3, util_change::Float64=0.05,
                   sorter=normalizedUtilDeviation, pollafterpert=false,
                   which_changes=(true, true, true, true),
-                  correlatednoise::Float64=0.1, iidnoise::Float64=0.0,
+                  correlatednoise::Float64=0.1, iidnoise::Float64=0.0;
                   iter_per_update=0)
     nmethod = length(methods)
     counts = zeros(Int, nmethod, nbucket)
@@ -76,11 +77,12 @@ function calc_cid(niter::Int,
                   votersperbucket::Int=3, util_change::Float64=0.1,
                   sorter=normalizedUtilDeviation, pollafterpert=false,
                   which_changes=(true, true, true, true),
-                  correlatednoise::Float64=0.1, iidnoise::Float64=0.0)
+                  correlatednoise::Float64=0.1, iidnoise::Float64=0.0;
+                  iter_per_update=0)
     calc_cid(niter, vmodel, methods,
              [esfromtemplate(template, hypot(correlatednoise, iidnoise)) for template in estrats],
              nbucket, ncand, nwinners, votersperbucket, util_change, sorter,
-             pollafterpert, which_changes, correlatednoise, iidnoise)
+             pollafterpert, which_changes, correlatednoise, iidnoise, iter_per_update=iter_per_update)
 end
 
 """

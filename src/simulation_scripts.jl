@@ -47,4 +47,8 @@ VMES.esif_contour_chart(gdf[1], VMES.parse_expscale)
             VMES.ESTemplate(100, [[(VMES.bullet, 1, 20), (VMES.hon, 21, 40), (VMES.ExpScale(2^x), 41, 100)]])], 8)
         for x in 0.4:0.2:4.2])),
     100, 10, 4)
+
+@time df = VMES.calc_cid(1000, VMES.dcc,
+    [VMES.LimitedVoting(4), VMES.approval, VMES.sntv, VMES.stv, VMES.stvminimax],
+    repeat([VMES.ElectorateStrategy(VMES.hon, 72)], 5), 24, 20, 4, iter_per_update=10)
     

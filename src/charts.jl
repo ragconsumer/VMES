@@ -139,9 +139,9 @@ end
 cidxticklabel(x::Real) = string(round(Int, x*100), "%")
 
 #=
-df = VMES.calc_cid(5000, VMES.dcc,
-    [VMES.plurality, VMES.pluralitytop2, VMES.approval, VMES.approvaltop2, VMES.rcv, VMES.score, VMES.star, VMES.minimax],
-    repeat([VMES.ElectorateStrategy(VMES.hon, 72)], 8), 24, 5)
+@time df = VMES.calc_cid(5000, VMES.dcc,
+    [VMES.plurality, VMES.pluralitytop2, VMES.approval, VMES.approvaltop2, VMES.rcv, VMES.star, VMES.minimax],
+    repeat([VMES.ElectorateStrategy(VMES.hon, 72)], 7), 24, 5, iter_per_update=1000)
 
 df = VMES.calc_cid(500, VMES.dcc,
     [VMES.plurality, VMES.pluralitytop2, VMES.approval, VMES.approvaltop2, VMES.rcv, VMES.score, VMES.star, VMES.minimax],
@@ -224,6 +224,18 @@ function paper_distance_ncand_chart(dfarray::Array)
 end
 
 """
+@time dfs = [VMES.calc_cid(100, VMES.dcc,
+    [VMES.plurality, VMES.pluralitytop2, VMES.approval, VMES.approvaltop2, VMES.rcv, VMES.star, VMES.minimax],
+    repeat([VMES.ElectorateStrategy(VMES.hon, 72)], 7), 24, m, iter_per_update=10) for m in 3:10]
+"""
+function process_distance_ncand_df(dfarray::Array)
+    df = vcat(dfarray...)
+    distancedf = distance_from_uniform(earth_movers_distance_from_uniform, df)
+    distancedf.Method = string.(distancedf.Method)
+    return distancedf
+end
+
+"""
 df = VMES.calc_cid(1000, VMES.dcc,
     repeat([VMES.plurality, VMES.pluralitytop2, VMES.approval, VMES.approvaltop2,
         VMES.rcv, VMES.score, VMES.star, VMES.minimax], 13),
@@ -245,6 +257,14 @@ function paper_vafraction_chart(df)
         Scale.color_discrete_manual("#D55E00","#E69F00","#0072B2","#56B4E9","#009E73","#CC79A7","#F0E442","black"))
 end
 
+function process_distance_vafraction_df(df)
+    distancedf = distance_from_uniform(earth_movers_distance_from_uniform, df)
+    distancedf.Method = string.(distancedf.Method)
+    distancedf.estrat = string.(distancedf[!,"Electorate Strategy"])
+    distancedf.vas = vafraction.(distancedf.estrat, df[1, "Total Buckets"]*df[1, "Voters per Bucket"])
+    return distancedf
+end
+
 """
 bulletdf = VMES.calc_cid(5000, VMES.dcc,
            repeat([VMES.plurality, VMES.pluralitytop2, VMES.approval, VMES.approvaltop2,
@@ -263,6 +283,14 @@ function paper_bullet_fraction_chart(df)
          Coord.cartesian(xmin=minimum(distancedf.ncand)), Guide.colorkey(title="Method", labels=[
             "Plurality", "Plurality Top 2","Approval","Approval Top 2","IRV","Score","STAR","Minimax"]),
         Scale.color_discrete_manual("#D55E00","#E69F00","#0072B2","#56B4E9","#009E73","#CC79A7","#F0E442","black"))
+end
+
+function process_distance_bulletfraction_df(df)
+    distancedf = distance_from_uniform(earth_movers_distance_from_uniform, df)
+    distancedf.Method = string.(distancedf.Method)
+    distancedf.estrat = string.(distancedf[!,"Electorate Strategy"])
+    distancedf.bullets = bulletfraction.(distancedf.estrat, df[1, "Total Buckets"]*df[1, "Voters per Bucket"])
+    return distancedf
 end
 
 function cid_expstrat_chart(df::DataFrame)

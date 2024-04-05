@@ -96,7 +96,7 @@ function use_metric_on_pair(cidvector, buckets, metric)
 end
 
 function distance_from_uniform(metric::Function, cid_df::DataFrame)
-    gdf = groupby(cid_df, ["Method", "Electorate Strategy", "ncand", "Utility Change"])
+    gdf = groupby(cid_df, ["Method", "Electorate Strategy", "ncand", "Utility Change", "Iterations"])
     combine(gdf, [:CID, :Bucket] =>
         ((c, b) -> use_metric_on_pair(c, b, metric)) =>
         :DFU)
