@@ -10,4 +10,6 @@ function calc_utils(voter::Vector{<:Real}, winners::Vector{Int}, nwinners::Int)
 end
 
 numutilmetrics(nwinners::Int) = nwinners == 1 ? 1 : 3
-metricnames(metricindex::Integer) = ["Median Winner","Mean Winner","Favorite Winner"][metricindex]
+numutilmetrics(nwinners::Int, voter_model) = nwinners == 1 ? 1 : 3
+numutilmetrics(nwinners::Int, voter_model::SpatialModel) = nwinners == 1 ? 1 : 4
+metricnames(metricindex::Integer) = ["Median Winner","Mean Winner","Favorite Winner", "Median Winner Position"][metricindex]

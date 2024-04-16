@@ -99,6 +99,14 @@ import Statistics, Distributions, Random
         @test weights[1, 1] == 1
         @test weights[3, 1] == .1
         @test weights[1, 8] == 0
+        #test normalize_weights
+        weights = [2 .5 3
+                   0 .5 4
+        ]
+        VMES.normalize_weights(VMES.dcc, weights)
+        @test weights[1,1] == 1
+        @test weights[1,2] ≈ 1/sqrt(2)
+        @test weights[1,3] ≈ 3/5
         #test positions_to_utils
         votersandcands = [10 0 1 10 1
                           0 0 5 0 0]
@@ -701,20 +709,33 @@ end
 end
 
 @testset "Metrics" begin
-    methods = [plurality, irv, minimax]
-    strats = [ElectorateStrategy(hon, 11) for _ in 1:3]
-    vses = calc_vses(10, VMES.TestModel(VMES.centersqueeze1), methods, strats, 11, 3).VSE
-    @test vses ≈ [(10.5 - 32.5/3)/(13-32.5/3), (9 - 32.5/3)/(13-32.5/3), 1]
+    @testset "VSE" begin
+        methods = [plurality, irv, minimax]
+        strats = [ElectorateStrategy(hon, 11) for _ in 1:3]
+        vses = calc_vses(10, VMES.TestModel(VMES.centersqueeze1), methods, strats, 11, 3).VSE
+        @test vses ≈ [(10.5 - 32.5/3)/(13-32.5/3), (9 - 32.5/3)/(13-32.5/3), 1]
 
-    electorate = [10;0;0;0;;10;0;0;0;;0;10;6;0;;0;0;10;0]
-    qs, highs, avgs = VMES.mw_winner_quality(electorate, [[1,2,3],[1,2,4],[1,3,4],[2,3,4]], 3)
-    @test highs == [5; 5; 10]
-    @test qs == [1.5; 0; 0; 1.5;; 46/12;30/12;36/12;26/12;; 10;7.5;9;5]
+        electorate = [10;0;0;0;;10;0;0;0;;0;10;6;0;;0;0;10;0]
+        qs, highs, avgs = VMES.mw_winner_quality(electorate, [[1,2,3],[1,2,4],[1,3,4],[2,3,4]], 3)
+        @test highs == [5; 5; 10]
+        @test qs == [1.5; 0; 0; 1.5;; 46/12;30/12;36/12;26/12;; 10;7.5;9;5]
 
-    qs, highs, avgs = VMES.simple_mw_winner_quality(electorate, [[1,2,3],[1,2,4],[1,3,4],[2,3,4]])
-    @test highs == [5; 5; 5]
-    @test avgs ≈ [46/16, 46/16, 46/16]
-    @test qs == [1.5; 0; 0; 1.5;; 46/12;30/12;36/12;26/12;; 10;7.5;9;5]
+        qs, highs, avgs = VMES.simple_mw_winner_quality(electorate, [[1,2,3],[1,2,4],[1,3,4],[2,3,4]])
+        @test highs == [5; 5; 5]
+        @test avgs ≈ [46/16, 46/16, 46/16]
+        @test qs == [1.5; 0; 0; 1.5;; 46/12;30/12;36/12;26/12;; 10;7.5;9;5]
+        vpos = [0 0
+                0 0.]
+        cpos = [1 -1 1 
+                -1 1 1.]
+        cares = [1 1
+                 1 1.]
+        se = VMES.SpatialElectorate(vpos, cares, cpos, 42)
+        qs, highs, avgs = VMES.simple_mw_winner_quality(se, [[1,2],[1,3]])
+        @test highs[4] ≈ -sqrt(2)
+        @test qs[1, 4] == 0
+        @test qs[2, 4] ≈ -1
+    end
 
     @testset "CID" begin
         @test VMES.normalizedUtilDeviation([0,10],1) == -1

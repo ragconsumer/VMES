@@ -14,25 +14,39 @@ function calc_vses(niter::Int,
                    vmodel::VoterModel,
                    methods::Vector{<:VotingMethod},
                    estrats::Vector{ElectorateStrategy},
-                   nvot::Int, ncand::Int, nwinners::Int=1,
-                   correlatednoise::Float64=0.1, iidnoise::Float64=0.0)
-    winnerutils = Array{Float64, 3}(undef, length(methods), numutilmetrics(nwinners), niter)
-    bestutils = Matrix{Float64}(undef, numutilmetrics(nwinners), niter)
-    avgutils = Matrix{Float64}(undef, numutilmetrics(nwinners), niter)
-    Threads.@threads for i in 1:niter
-        winnerutils[:, :, i], bestutils[:, i], avgutils[:, i] = one_vse_iter(
-            vmodel, methods, estrats, nvot, ncand, nwinners, correlatednoise, iidnoise)
+                   nvot::Int, ncand::Int, nwinners::Int=1;
+                   correlatednoise::Float64=0.1, iidnoise::Float64=0.0,
+                   iter_per_update=0)
+    nmetrics = numutilmetrics(nwinners, vmodel)
+
+    #Keep running totals for each thread
+    winnerutils = zeros(Float64, length(methods), nmetrics, Threads.nthreads()) 
+    bestutils = zeros(Float64, nmetrics, Threads.nthreads())
+    avgutils = zeros(Float64, nmetrics, Threads.nthreads())
+    Threads.@threads for tid in 1:Threads.nthreads()
+        iterationsinthread = niter ÷ Threads.nthreads() + (tid <= niter % Threads.nthreads() ? 1 : 0)
+        for i in 1:iterationsinthread
+            if iter_per_update > 0 && i % iter_per_update == 0
+                println("Iteration $i in thread $tid")
+            end
+            wu, bu, au = one_vse_iter(
+                vmodel, methods, estrats, nvot, ncand, nwinners, correlatednoise, iidnoise)
+            winnerutils[:, :, tid] += wu
+            bestutils[:, tid] += bu
+            avgutils[:, tid] += au
+        end
     end
     bestsums, avgsums = sum(bestutils, dims=2), sum(avgutils, dims=2)
     winnersums = sum(winnerutils, dims=3)
-    results = Matrix{Float64}(undef, length(methods), numutilmetrics(nwinners))
+    results = Matrix{Float64}(undef, length(methods), nmetrics)
     for i in 1:length(methods)
-        for metric in 1:numutilmetrics(nwinners)
+        for metric in 1:nmetrics
             results[i, metric] = (winnersums[i, metric]-avgsums[metric])/(bestsums[metric]-avgsums[metric])
         end
     end
     scenariodf = DataFrame(:Method=>methods, Symbol("Electorate Strategy")=>estrats)
-    resultdf = DataFrame(results, nwinners==1 ? ["VSE"] : [string(metricnames(met), " VSE") for met in 1:numutilmetrics(nwinners)])
+    resultdf = DataFrame(results, nwinners==1 ? ["VSE"] : [string(metricnames(met), " VSE")
+                        for met in 1:nmetrics])
     results = hcat(scenariodf, resultdf)
     results[!, "Voter Model"] .= [vmodel]
     results[!, "nvot"] .= nvot
@@ -47,11 +61,12 @@ function calc_vses(niter::Int,
     vmodel::VoterModel,
     methods::Vector{<:VotingMethod},
     estrats::Vector,
-    nvot::Int, ncand::Int, nwinners::Int=1,
-    correlatednoise::Float64=0.1, iidnoise::Float64=0.0)
+    nvot::Int, ncand::Int, nwinners::Int=1;
+    correlatednoise::Float64=0.1, iidnoise::Float64=0.0,
+    iter_per_update=0)
     calc_vses(niter, vmodel, methods,
             [esfromtemplate(template, hypot(correlatednoise, iidnoise)) for template in estrats],
-            nvot, ncand, nwinners, correlatednoise, iidnoise)
+            nvot, ncand, nwinners, correlatednoise, iidnoise; iter_per_update=iter_per_update)
 end
 
 """
@@ -67,7 +82,12 @@ function one_vse_iter(vmodel::VoterModel,
                       estrats::Vector{ElectorateStrategy},
                       nvot::Int, ncand::Int, nwinners=1,
                       correlatednoise::Float64=0.1, iidnoise::Float64=0.0)
-    electorate = make_electorate(vmodel, nvot, ncand)
+    if(nwinners > 1 && isa(vmodel, SpatialModel))
+        spatial_electorate = make_spatial_electorate(vmodel, nvot, ncand)
+        electorate = spatial_electorate.utility_matrix
+    else
+        electorate = make_electorate(vmodel, nvot, ncand)
+    end
     infodict = administerpolls(electorate, (estrats, methods), correlatednoise, iidnoise)
     ballots = castballots.((electorate,), estrats, methods, (infodict,))
     winnersets = getwinners.(ballots, methods, nwinners)
@@ -78,7 +98,8 @@ function one_vse_iter(vmodel::VoterModel,
         winnerutils = [Statistics.mean(socialutils[w] for w in winners) for winners in winnersets]
         return winnerutils, [bestutil], [avgutil]
     else
-        return simple_mw_winner_quality(electorate, winnersets)
+        e = isa(vmodel, SpatialModel) ? spatial_electorate : electorate
+        return simple_mw_winner_quality(e, winnersets)
     end
 end
 
@@ -146,5 +167,29 @@ function simple_mw_winner_quality(electorate, winnersets)
     methodresults = [medians means bests]
     avgs = [meanutil, meanutil, meanutil]
     highs = [bestutil, bestutil, bestutil]
+    return methodresults, highs, avgs
+end
+
+function simple_mw_winner_quality(se::SpatialElectorate, winnersets)
+    electorate = se.utility_matrix
+    socialutils = Statistics.mean(electorate, dims=2)
+    bestutil = maximum(socialutils)
+    meanutil = Statistics.mean(electorate)
+    #Determine the quality of the sets of winners
+    bests = map(winnersets) do winnerset
+        Statistics.mean(maximum(v[w] for w in winnerset) for v in eachslice(electorate, dims=2))
+    end
+    means = [Statistics.mean(socialutils[w] for w in winners) for winners in winnersets]
+    medians = map(winnersets) do winnerset
+        Statistics.mean(Statistics.median(v[w] for w in winnerset) for v in eachslice(electorate, dims=2))
+    end
+    ndims = size(se.candidate_coordinates, 1)
+    median_positions = [Statistics.median(se.candidate_coordinates[dim, w] for w in winners)
+                        for dim in 1:ndims, winners in winnersets]
+    median_winner_utils = make_utility_matrix(se.voter_coordinates, se.caring_matrix, median_positions)
+    social_pos_utils = Statistics.mean(median_winner_utils, dims=2)
+    methodresults = [medians means bests social_pos_utils]
+    avgs = repeat([meanutil], 4)
+    highs = repeat([bestutil], 4)
     return methodresults, highs, avgs
 end
