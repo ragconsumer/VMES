@@ -1,3 +1,52 @@
+struct HonLimRankings <: BlindStrategy
+    num_ranks::Int
+end
+
+struct HonLimTiedRankings <: BlindStrategy
+    num_ranks::Int
+end
+
+"""
+    vote(voter, strat::HonLimRankings, ::VotingMethod)
+
+Cast an honest ballot that uses only a limited number of rankings, without ties.
+"""
+function vote(voter, strat::HonLimRankings, ::VotingMethod)
+    sortedutils = sort(collect(enumerate(voter)), lt=(((i1,u1),(i2,u2)) -> u1<u2 ? true : u1==u2 && i1>i2 ? true : false))
+    ballot = zeros(Int, length(voter))
+    for (score, (i, _)) in enumerate(sortedutils[end-strat.num_ranks+1:end])
+        ballot[i] = score
+    end
+    return ballot
+end
+
+"""
+    vote(voter, strat::HonLimTiedRankings, ::VotingMethod)
+
+Cast an honest ballot that uses only a limited number of rankings, with ties.
+"""
+function vote(voter, strat::HonLimTiedRankings, ::VotingMethod)
+    ncand = length(voter)
+    ballot = vote(voter, hon, STARVoting(strat.num_ranks))
+    improved = true
+    while improved
+        improved = false
+        for cand in 1:ncand
+            if ballot[cand] > 0 && (sum(abs(voter[cand]-voter[a]) for a in 1:ncand if ballot[a] == ballot[cand] - 1)
+                            < sum(abs(voter[cand]-voter[a]) for a in 1:ncand if ballot[a] == ballot[cand]))
+                ballot[cand] -= 1
+                improved = true
+            elseif ballot[cand] < strat.num_ranks && (
+                            sum(abs(voter[cand]-voter[a]) for a in 1:ncand if ballot[a] == ballot[cand] + 1)
+                            < sum(abs(voter[cand]-voter[a]) for a in 1:ncand if ballot[a] == ballot[cand]))
+                ballot[cand] += 1
+                improved = true
+            end
+        end
+    end
+    return ballot
+end
+
 struct BordaVA <: InformedStrategy
     neededinfo
 end

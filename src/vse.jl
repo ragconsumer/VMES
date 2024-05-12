@@ -66,7 +66,8 @@ function calc_vses(niter::Int,
     iter_per_update=0)
     calc_vses(niter, vmodel, methods,
             [esfromtemplate(template, hypot(correlatednoise, iidnoise)) for template in estrats],
-            nvot, ncand, nwinners, correlatednoise, iidnoise; iter_per_update=iter_per_update)
+            nvot, ncand, nwinners,
+            correlatednoise=correlatednoise, iidnoise=iidnoise; iter_per_update=iter_per_update)
 end
 
 """

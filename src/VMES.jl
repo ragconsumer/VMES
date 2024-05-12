@@ -3,17 +3,17 @@ module VMES
 export tabulate, winnersfromtab, getwinners
 export plurality, pluralitytop2, approval, approvaltop2, score, star, irv, rcv, buirv, borda, minimax, rankedrobin
 export sss, allocatedscore, s5h, sssr, asr, s5hr, sssfr, asfr, s5hfr, asu, asur, mes, mesdroop, scv, scvr, blockstar, LimitedVoting
-export stvminimax
+export stvminimax, stv, sntv, LimitedVoting
 export spav, spav_sl, spav_msl
 export vote
 export hon, bullet, abstain, TopBottomThreshold, TopMeanThreshold, StdThreshold
-export ExpScale, topbotem, topmeanem, topmeanround, scorebystd
+export ExpScale, topbotem, topmeanem, topmeanround, scorebystd, HonLimRankings, HonLimTiedRankings
 export PluralityVA, ApprovalVA, BordaVA, IRVVA, STARVA
 export ElectorateStrategy, castballots
 export ESTemplate, BasicPollStratTemplate, esfromtemplate
 export BasicWinProbTemplate, approvalvatemplate, pluralityvatemplate, starvatemplate, irvvatemplate, esfromtemplate
 export make_electorate, ic, ImpartialCulture, DimModel, DCCModel, dcc, RepDrawModel, BaseQualityNoiseModel
-export calc_vses, calc_esif, calc_cid, collect_strat_stats, influence_cdf, distance_from_uniform
+export calc_vses, calc_primary_vse, calc_esif, calc_cid, collect_strat_stats, influence_cdf, distance_from_uniform
 export util_pert_on_score_stats, total_variation_distance_from_uniform, earth_movers_distance_from_uniform
 
 
@@ -33,6 +33,7 @@ include("strat_templates.jl")
 include("votermodels.jl")
 include("strat_statistics.jl")
 include("vse.jl")
+include("primaryvse.jl")
 include("strategicmetrics.jl")
 include("esif.jl")
 #include("pvsi.jl")

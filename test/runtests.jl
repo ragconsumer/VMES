@@ -151,6 +151,9 @@ end
     @test vote([1,3,3,2],bullet,star)==[0,5,0,0]
     @test vote([1,4,3,5],bullet,pluralitytop2) == [0, 0, 0, 1,  0, 2, 1, 3]
     @test vote([1,4,3,5],bullet,VMES.Top2Method(VMES.score)) == [0,0,0,5, 0,2,1,3]
+    @test vote([1,4,3,5], HonLimRankings(2), irv) == [0,1,0,2]
+    @test vote([0,3,2,5], HonLimTiedRankings(2), minimax) == [0,1,1,2]
+    @test vote([-4,3,2,5,10,8], HonLimTiedRankings(2), minimax) == [0,1,1,1,2,2]
     @test vote([-10,1,2,3],TopBottomThreshold(.6),approval) == [0,1,1,1]
     @test vote([-10,1,2,3],TopBottomThreshold(.9),approval) == [0,0,1,1]
     @test vote([-10,1,2,3],TopBottomThreshold(.95),approval) == [0,0,0,1]
@@ -735,6 +738,27 @@ end
         @test highs[4] ≈ -sqrt(2)
         @test qs[1, 4] == 0
         @test qs[2, 4] ≈ -1
+    end
+
+    @testset "Primary VSE" begin
+        ge_methods = [plurality, irv, minimax]
+        primary_methods = [sntv, sntv, sntv]
+        strats = [ElectorateStrategy(hon, 11) for _ in 1:3]
+        vses = calc_primary_vse(10, VMES.TestModel(VMES.centersqueeze1),
+                                primary_methods, strats, ge_methods, strats, 11, 11, 3, 3).VSE
+        @test vses ≈ [(10.5 - 32.5/3)/(13-32.5/3), (9 - 32.5/3)/(13-32.5/3), 1]
+        ge_methods = [approval, minimax, minimax]
+        vses = calc_primary_vse(10, VMES.TestModel(VMES.centersqueeze1),
+                                primary_methods, strats, ge_methods, strats, 11, 11, 3, 1:3).VSE
+        @test vses ≈ [(10.5 - 32.5/3)/(13-32.5/3), (9 - 32.5/3)/(13-32.5/3), 1]
+        ge_methods = [plurality, plurality, plurality]
+        primary_strats = [ElectorateStrategy(hon, 5) for _ in 1:3]
+        vses = VMES.calc_primary_vse(10, VMES.TestModel(VMES.centersqueeze1),
+                                primary_methods, primary_strats, ge_methods, strats, 5, 11, 3, 1).VSE
+        @test vses[1] ≈ (10.5 - 32.5/3)/(13-32.5/3)
+        vses = VMES.calc_primary_vse(100, VMES.TestModel(VMES.centersqueeze1),
+                                primary_methods, primary_strats, ge_methods, strats, 5, 11, 3, 1, true).VSE
+        @test -.5 < vses[1] < .16
     end
 
     @testset "CID" begin
