@@ -6,7 +6,7 @@ export sss, allocatedscore, s5h, sssr, asr, s5hr, sssfr, asfr, s5hfr, asu, asur,
 export stvminimax, stv, sntv, LimitedVoting
 export spav, spav_sl, spav_msl
 export vote
-export hon, bullet, abstain, TopBottomThreshold, TopMeanThreshold, StdThreshold
+export hon, bullet, abstain, TopBottomThreshold, TopMeanThreshold, StdThreshold, smartblindstar, SmartBlindSTAR
 export ExpScale, topbotem, topmeanem, topmeanround, scorebystd, HonLimRankings, HonLimTiedRankings
 export PluralityVA, ApprovalVA, BordaVA, IRVVA, STARVA
 export ElectorateStrategy, castballots

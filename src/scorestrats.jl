@@ -30,6 +30,10 @@ struct STARVA <: InformedStrategy
     scoreimportance::Float64
 end
 
+struct SmartBlindSTAR <: BlindStrategy
+    scoreimportantance::Float64
+end
+
 function mean_plus_std(itr)
     mean = Statistics.mean(itr)
     std = Statistics.stdm(itr, mean, corrected=false)
@@ -62,6 +66,8 @@ end
 @namestrat topmeanem = ArbitraryScoreScale(maximum, Statistics.mean, 1, -1, equalmeasureforscore)
 @namestrat topmeanround = ArbitraryScoreScale(maximum, Statistics.mean, 1, -1, roundtoscore)
 @namestrat topbotround = ArbitraryScoreScale(maximum, minimum, 1, 0, equalmeasureforscore)
+
+@namestrat smartblindstar = SmartBlindSTAR(0.1)
 
 scorebystd(nstds) = ArbitraryScoreScale(mean_plus_std, Statistics.mean, nstds, -nstds, equalmeasureforscore)
 
@@ -158,6 +164,11 @@ function vote(voter, strat::STARVA, method::ScoringMethod, winprobs)
         end
     end
     return ballot
+end
+
+function vote(voter, strat::SmartBlindSTAR, method::ScoringMethod)
+    ncand = length(voter)
+    vote(voter, STARVA(nothing, strat.scoreimportantance), method, ones(Float64, ncand)./ncand)
 end
 
 struct STARPositional <: InformedStrategy

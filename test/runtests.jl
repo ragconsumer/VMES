@@ -178,6 +178,8 @@ end
     @test vote([0,0.8,1,2,3,4,4.2,5], ExpScale(1, topmeanem), star) == [0,0,1,2,3,4,5,5]
     @test vote([0,0.8,1,2,3,4,4.2,5], ExpScale(2, topmeanem), star) == [0,0,0,0,2,3,4,5]
     @test vote([0,0.8,1,2,3,4,4.2,5], ExpScale(5, topmeanem), star) == [0,0,0,0,0,1,2,5]
+    @test vote([0,1.4,0.6,5], smartblindstar, star) == [0,2,1,5]
+    @test vote([0,1,1.01,5], smartblindstar, star) == [0,1,1,5]
 end
 
 @testset "Viability-Aware Strategies" begin
