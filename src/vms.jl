@@ -241,7 +241,9 @@ end
 Perform a STAR-style runoff between the finalists.
 """
 function star_runoff(ballots, finalist1, finalist2)
-    tallies = zeros(Int, size(ballots, 1))
+    tallies = -ones(Int, size(ballots, 1))
+    tallies[finalist1] = 0
+    tallies[finalist2] = 0
     for ballot in eachslice(ballots, dims=2)
         if ballot[finalist1] > ballot[finalist2]
             tallies[finalist1] += 1

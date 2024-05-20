@@ -367,7 +367,7 @@ end
     @test VMES.top2([1,1,1,1])==[1, 2]
 
     @test tabulate(VMES.startestballots, score) == [50; 43; 43;;]
-    @test tabulate(VMES.startestballots, star) == [50; 43; 43;; 10; 11; 0]
+    @test tabulate(VMES.startestballots, star) == [50; 43; 43;; 10; 11; -1]
     @test VMES.placementsfromtab([50; 43; 43;;], score) == [1,2,3]
     @test VMES.placementsfromtab([50; 43; 43;; 10; 11; 0], score) == [2,1,3]
 

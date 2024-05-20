@@ -40,7 +40,8 @@ function makepoll(ballots, spec::STARPollSpec, noisevector, iidnoise, rng=Random
     clamp!(r1, 0, 1)
     finalists = top2(r1)
     unscaledr2 = star_runoff(ballots, finalists...)
-    r2 = unscaledr2 ./ nvot
+    r2 = zeros(Float64, ncand)
+    r2[finalists] = unscaledr2[finalists] ./ nvot
     r2total = sum(r2)
     r2[finalists] += noisevector[finalists] + iidnoise .* iidnoise*randn(rng, 2)
     r2 .*= r2total/sum(r2)
