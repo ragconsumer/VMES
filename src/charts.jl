@@ -83,6 +83,34 @@ function vse_va_chart(df::DataFrame)
         Scale.color_discrete_manual("#D55E00","#E69F00","#0072B2","#56B4E9","#009E73","#F0E442"))
 end
 
+function vse_dispersion_df(df::DataFrame)
+    df2 = DataFrame()
+    df2.Method = string.(df.Method)
+    df2.estrat = string.(df[:,"Electorate Strategy"])
+    df2.Dispersion = parse_dispersion.(string.(df[:, "Voter Model"]))
+    df2.VSE = df.VSE
+    return df2
+end
+
+function parse_dispersion(str)
+    r = r"(\d*\.\d*)\]\)"
+    parse(Float64, match(r, str).captures[1])
+end
+
+function vse_candidate_quality_df(df::DataFrame)
+    df2 = DataFrame()
+    df2.Method = string.(df.Method)
+    df2.estrat = string.(df[:,"Electorate Strategy"])
+    df2.Quality = parse_quality.(string.(df[:, "Voter Model"]))
+    df2.VSE = df.VSE
+    return df2
+end
+
+function parse_quality(str)
+    r = r"\), (\d*\.\d*), 0\.0\)"
+    parse(Float64, match(r, str).captures[1])
+end
+
 function vse_expstrat_mw_chart(df::DataFrame, metric::String)
     df2 = copy(df)
     df2.Method = string.(df2.Method)
