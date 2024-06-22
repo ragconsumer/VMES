@@ -31,6 +31,9 @@ import Statistics, Distributions, Random
     @test abspref > 10000n
     @test totalpref < 100000 * sqrt(n)
 
+    @test VMES.make_electorate(ExpPreferenceModel(VMES.TestModel([-10.;-5;0;;0;5;0]), 1), 2, 3) == [0;.5;1;;0;1;0]
+    @test VMES.make_electorate(ExpPreferenceModel(VMES.TestModel([-10.;-5;0;;0;5;0]), 2), 2, 3) == [0;.25;1;;0;1;0]
+
     @testset "DCCModel" begin
         #test makeviews
         for i in 1:4

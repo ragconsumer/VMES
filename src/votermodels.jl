@@ -25,6 +25,11 @@ struct BaseQualityNoiseModel <: VoterModel
     noisestd::Float64
 end
 
+struct ExpPreferenceModel <: VoterModel
+    basemodel::VoterModel
+    exponent::Float64
+end
+
 struct DCCModel <: SpatialModel
     viewdecaydist
     viewcut
@@ -182,6 +187,16 @@ function make_electorate(model::BaseQualityNoiseModel, nvot::Int, ncand::Int, se
         electorate[c,:] .+= model.qualitystd*randn(rng)
     end
     electorate += model.noisestd*randn(rng, ncand, nvot)
+end
+
+function make_electorate(model::ExpPreferenceModel, nvot::Int, ncand::Int, seed::Int)
+    base_electorate = make_electorate(model.basemodel, nvot, ncand, seed)
+    normalized_electorate = Matrix{Float64}(undef, ncand, nvot)
+    for (i, utils) in enumerate(eachcol(base_electorate))
+        high, low = maximum(utils), minimum(utils)
+        normalized_electorate[:, i] = (utils .- low)./(high-low)
+    end
+    return SeededElectorate(normalized_electorate .^ model.exponent, seed)
 end
 
 """
