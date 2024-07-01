@@ -117,6 +117,10 @@ function vote(voter, strat::InformedStrategy, method::OneRoundMethod, infodict::
     vote(voter, strat, method, infodict[neededinfo(strat, method)])
 end
 
+function vote(voter, strat::VoterStrategy, method::Smith)
+    vote(voter, strat, method.basemethod)
+end
+
 """
     getfrontrunners(pollcolumn, n)
 

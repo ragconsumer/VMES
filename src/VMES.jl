@@ -2,7 +2,8 @@ module VMES
 
 export tabulate, winnersfromtab, getwinners
 export plurality, pluralitytop2, approval, approvaltop2, score, star, irv, rcv, buirv, borda, minimax, rankedrobin
-export sss, allocatedscore, s5h, sssr, asr, s5hr, sssfr, asfr, s5hfr, asu, asur, mes, mesdroop, scv, scvr, blockstar, LimitedVoting
+export smithirv, smithplurality, smithscore
+export sss, allocatedscore, s5h, sssr, asr, s5hr, sssfr, asfr, s5hfr, asu, asur, mes, mesdroop, scv, scvr, blockstar
 export stvminimax, stv, sntv, LimitedVoting
 export spav, spav_sl, spav_msl
 export vote

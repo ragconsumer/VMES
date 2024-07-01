@@ -43,6 +43,7 @@ end
 approvalvatemplate = BasicWinProbTemplate(ApprovalVA, approval, [])
 pluralityvatemplate = BasicWinProbTemplate(PluralityVA, plurality, [])
 starvatemplate = BasicWinProbTemplate(STARVA, score, [0.1])
+bordavatemplate = BasicWinProbTemplate(BordaVA, borda, [])
 
 struct ApprovalWinProbTemplate <: VoterStratTemplate
     basestrat::Union{DataType, Function}

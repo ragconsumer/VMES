@@ -23,6 +23,7 @@ end
 struct PluralityVoting <: PluralityMethod; end #irrelevant that it's considered a cardinal method in the code
 @namevm plurality = PluralityVoting()
 @namevm pluralitytop2 = Top2Method(plurality)
+struct RankedPlurality <: RankedMethod; end #Elects the Plurality winner from ranked ballots.
 struct ApprovalVoting <: ApprovalMethod; end
 @namevm approval = ApprovalVoting()
 @namevm approvaltop2 = Top2Method(approval)
@@ -45,6 +46,8 @@ struct RankedRobin <: CondorcetCompMatOnly; end
 @namevm rankedrobin = RankedRobin()
 
 @namevm smithscore = Smith(score)
+@namevm smithirv = Smith(irv)
+@namevm smithplurality = Smith(RankedPlurality())
 
 
 function Base.show(io::IO, m::M) where {M <: VotingMethod}
@@ -235,6 +238,20 @@ function top2(results)
     return [besti, secondi]
 end
 
+function tabulate(ballots, ::RankedPlurality)
+    n = size(ballots, 1)
+    totals = zeros(Int, n)
+    for ballot in eachslice(ballots, dims=2)
+        m = maximum(ballot)
+        for c in 1:n
+            if ballot[c] == m
+                totals[c] += 1
+            end
+        end
+    end
+    return totals
+end
+
 """
     star_runoff(ballots, finalist1, finalist2)
 
@@ -333,6 +350,48 @@ function tabulatefromcompmat(compmat::Matrix{T}, ::RankedRobin) where T <: Real
                     sum(compmat[lcand, tcand] - compmat[tcand, lcand] for tcand in finalists) : T(-999))
                     for lcand in 1:n]
     return [compmat wincounts finalmargins]
+end
+
+function tabulate(ballots, method::Smith)
+    ncand = size(ballots, 1)
+    compmat = pairwisematrix(ballots)
+    s = smithset(compmat)
+    if length(s) == 1
+        return [compmat [c in s ? 1 : -1 for c in 1:ncand]]
+    else
+        inner_results = tabulate(ballots[s, :], method.basemethod)
+        return [compmat [c in s ? inner_results[findfirst(x->x==c, s),col] : -1. for c in 1:ncand, col in 1:size(inner_results, 2)]]
+    end
+end
+
+"""
+    smithset(compmat::Array{T}) where T <: Real
+
+Return a vector whose elements are the elements of the Smith set.
+"""
+function smithset(compmat::Array{T}) where T <: Real
+    n = size(compmat, 1)
+    wincounts = [count(>(0), compmat[lcand, tcand] - compmat[tcand, lcand] for tcand in 1:n) for lcand in 1:n]
+    s = [argmax(wincounts)]
+    if wincounts[s[1]] == n-1
+        return s
+    end
+    extensionfound = true
+    while extensionfound
+        extensionfound = false
+        for potentialmember in 1:n
+            if potentialmember ∉ s
+                for member in s
+                    if compmat[potentialmember,member] >= compmat[member, potentialmember]
+                        push!(s, potentialmember)
+                        extensionfound = true
+                        break
+                    end
+                end
+            end
+        end
+    end
+    return s
 end
 
 #Score Cascading Vote; given here instead of the mw file since it uses Score

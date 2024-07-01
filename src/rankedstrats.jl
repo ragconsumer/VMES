@@ -32,13 +32,13 @@ function vote(voter, strat::HonLimTiedRankings, ::VotingMethod)
     while improved
         improved = false
         for cand in 1:ncand
-            if ballot[cand] > 0 && (sum(abs(voter[cand]-voter[a]) for a in 1:ncand if ballot[a] == ballot[cand] - 1)
-                            < sum(abs(voter[cand]-voter[a]) for a in 1:ncand if ballot[a] == ballot[cand]))
+            if ballot[cand] > 0 && (sum(ballot[a] == ballot[cand] - 1 ? abs(voter[cand]-voter[a]) : 0 for a in 1:ncand)
+                            < sum(ballot[a] == ballot[cand] ? abs(voter[cand]-voter[a]) : 0 for a in 1:ncand))
                 ballot[cand] -= 1
                 improved = true
             elseif ballot[cand] < strat.num_ranks && (
-                            sum(abs(voter[cand]-voter[a]) for a in 1:ncand if ballot[a] == ballot[cand] + 1)
-                            < sum(abs(voter[cand]-voter[a]) for a in 1:ncand if ballot[a] == ballot[cand]))
+                            sum(ballot[a] == ballot[cand] + 1 ? abs(voter[cand]-voter[a]) : 0 for a in 1:ncand)
+                            < sum(ballot[a] == ballot[cand] ? abs(voter[cand]-voter[a]) : 0 for a in 1:ncand))
                 ballot[cand] += 1
                 improved = true
             end

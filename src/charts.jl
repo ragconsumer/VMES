@@ -44,7 +44,9 @@ function vse_ncand_chart_no_plurality(df::DataFrame)
 end
 
 """
-stratdf = VMES.calc_vses(10000, VMES.dcc, repeat([VMES.plurality, VMES.pluralitytop2, VMES.approval, VMES.approvaltop2, VMES.rcv, VMES.star, VMES.rankedrobin], 21), reduce(vcat, [repeat([VMES.ElectorateStrategy(VMES.hon, 0, 1000-k, k)], 7) for k in 0:50:1000]), 1000, 5)
+stratdf = VMES.calc_vses(10000, VMES.dcc,
+    repeat([VMES.plurality, VMES.pluralitytop2, VMES.approval, VMES.approvaltop2, VMES.rcv, VMES.star, VMES.rankedrobin], 21),
+    reduce(vcat, [repeat([VMES.ElectorateStrategy(VMES.hon, 0, 1000-k, k)], 7) for k in 0:50:1000]), 1000, 5)
 """
 
 function vse_bullet_chart(df::DataFrame)
@@ -58,6 +60,30 @@ function vse_bullet_chart(df::DataFrame)
         Guide.colorkey(title="Method", labels=["Choose One", "Choosen One + Top 2","Approval","Approval + Top 2","RCV","STAR","Ranked Robin"]))
 end
 
+function vse_bullet_df(df::DataFrame)
+    df2 = DataFrame()
+    df2.Method = string.(df.Method)
+    df2.estrat = string.(df[:,"Electorate Strategy"])
+    df2.bullets = bulletfraction.(df2.estrat,df.nvot)./100
+    df2.VSE = df.VSE
+    return df2
+end
+
+function vse_nrank_df(df::DataFrame)
+    df2 = DataFrame()
+    df2.Method = string.(df.Method)
+    df2.estrat = string.(df[:,"Electorate Strategy"])
+    df2.ranks = parse_nranks.(df2.estrat)
+    df2.VSE = df.VSE
+    df2.ties = occursin.(("Tied",), df2.estrat)
+    return df2
+end
+
+function parse_nranks(str)
+    r = r"Rankings\((\d*)\)"
+    parse(Int, match(r, str).captures[1])
+end
+
 """
 vadf = VMES.calc_vses(100, VMES.dcc,
     repeat([VMES.plurality, VMES.pluralitytop2, VMES.approval, VMES.approvaltop2, VMES.rcv, VMES.star], 21),
@@ -67,6 +93,16 @@ vadf = VMES.calc_vses(100, VMES.dcc,
         VMES.ESTemplate(0, [[(VMES.hon,1,100)], [(VMES.approvaltop2vatemplate, 1, k)]]),
         VMES.ESTemplate(0, [[(VMES.hon,1,100)], [(VMES.irvvatemplate, 1, k)]]),
         VMES.ESTemplate(0, [[(VMES.hon,1,100)], [(VMES.starvatemplate, 1, k)]])]) for k in 0:5:100]),
+        100, 5)
+vadf = VMES.calc_vses(100, VMES.dcc,
+    repeat([VMES.plurality, VMES.pluralitytop2, VMES.approval, VMES.approvaltop2, VMES.rcv, VMES.star, VMES.rankedrobin], 21),
+    reduce(vcat, [reduce(vcat, [VMES.ESTemplate(0, [[(VMES.hon,1,400)], [(VMES.pluralityvatemplate, 1, k)]]),
+        VMES.ESTemplate(0, [[(VMES.hon,1,400)], [(VMES.pluralitytop2vatemplate, 1, k)]]),
+        VMES.ESTemplate(0, [[(VMES.hon,1,400)], [(VMES.approvalvatemplate, 1, k)]]),
+        VMES.ESTemplate(0, [[(VMES.hon,1,400)], [(VMES.approvaltop2vatemplate, 1, k)]]),
+        VMES.ESTemplate(0, [[(VMES.hon,1,400)], [(VMES.irvvatemplate, 1, k)]]),
+        VMES.ESTemplate(0, [[(VMES.hon,1,400)], [(VMES.starvatemplate, 1, k)]]),
+        VMES.ESTemplate(0, [[(VMES.hon,1,400)], [(VMES.condorcetva, 1, k)]])]) for k in 0:20:400]),
         100, 5)
 """
 
@@ -81,6 +117,15 @@ function vse_va_chart(df::DataFrame)
         Guide.colorkey(title="Method", labels=[
             "Choose One", "Choosen One + Top 2","Approval","Approval + Top 2","Ranked Choice","STAR"]),
         Scale.color_discrete_manual("#D55E00","#E69F00","#0072B2","#56B4E9","#009E73","#F0E442"))
+end
+
+function vse_va_df(df::DataFrame)
+    df2 = DataFrame()
+    df2.Method = string.(df.Method)
+    df2.estrat = string.(df[:,"Electorate Strategy"])
+    df2[!, "VA Fraction"] = vafraction.(df2.estrat,df.nvot)./100
+    df2.VSE = df.VSE
+    return df2
 end
 
 function vse_dispersion_df(df::DataFrame)
@@ -111,6 +156,20 @@ function parse_quality(str)
     parse(Float64, match(r, str).captures[1])
 end
 
+function vse_exp_preference_df(df::DataFrame)
+    df2 = DataFrame()
+    df2.Method = string.(df.Method)
+    df2.estrat = string.(df[:,"Electorate Strategy"])
+    df2.Exponent = parse_preference_exponent.(string.(df[:, "Voter Model"]))
+    df2.VSE = df.VSE
+    return df2
+end
+
+function parse_preference_exponent(str)
+    r = r"(\d*\.\d*)\)$"
+    parse(Float64, match(r, str).captures[1])
+end
+
 function vse_expstrat_mw_chart(df::DataFrame, metric::String)
     df2 = copy(df)
     df2.Method = string.(df2.Method)
@@ -118,6 +177,33 @@ function vse_expstrat_mw_chart(df::DataFrame, metric::String)
     df2.exp = parse_expscale.(df2.estrat)
     #metrics = ["Mean Winner VSE", "Median Winner VSE", "Favorite Winner VSE"]
     plot(df2, x=:exp, y=metric*" Winner VSE", color=:Method, Geom.line, Geom.point)
+end
+
+function vse_expstrat_df(df::DataFrame)
+    df2 = DataFrame()
+    df2.Method = string.(df.Method)
+    df2.estrat = string.(df2[!,"Electorate Strategy"])
+    df2.Exponent = parse_expscale.(df2.estrat)
+    df2.VSE = df.VSE
+    return df2
+end
+
+function esif_expstrat_df(df::DataFrame)
+    df2 = DataFrame()
+    df2.Method = string.(df.Method)
+    df2[!,"Base Strategy"] = string.(df[:,"Base Strategy"])
+    df2.Exponent = parse_expscale.(string.(df.Strategy))
+    df2.ESIF = df.ESIF
+    return df2
+end
+
+function vse_approval_threshold_df(df::DataFrame)
+    df2 = DataFrame()
+    df2.Method = string.(df.Method)
+    df2.estrat = string.(df[:,"Electorate Strategy"])
+    df2.Threshold = parse_threshold.(df2.estrat)
+    df2.VSE = df.VSE
+    return df2
 end
 
 function vafraction(estratstr::String, nvot::Int)
