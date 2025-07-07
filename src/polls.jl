@@ -44,6 +44,11 @@ struct CompMatPosSpec <: InfoSpec
     numfrontrunners::Int
 end
 
+"""
+A specification that gives the utilities of each candidate's strongest supporter.
+"""
+struct SupporterUtilSpec <: InfoSpec end
+
 function Base.:(==)(x::PS, y::PS) where PS <: PollSpec
     x.method == y.method && x.estrat == y.estrat
 end
@@ -130,6 +135,26 @@ function administerpolls(electorate, (strats, methods),
     for i in eachindex(strats, methods)
         for spec in neededinfo(strats[i], methods[i])
             addinfo!(infodict, electorate, spec, noisevector, iidnoise, respondants, rng)
+        end
+    end
+    infodict[nothing] = nothing
+    return infodict
+end
+
+function administerpolls(electorate, (strats, methods, correlatednoises, iidnoises),
+                         noisevector::Union{Vector{Float64}, Nothing}, samplesize=nothing, rng=Random.Xoshiro())
+    if noisevector === nothing
+        noisevector = randn(rng, size(electorate,1))
+    end
+    infodict = Dict()
+    if samplesize === nothing
+        respondants = nothing
+    else
+        respondants = rand(rng, 1:size(electorate,2), samplesize) #drawing WITH replacement
+    end
+    for i in eachindex(strats, methods, correlatednoises, iidnoises)
+        for spec in neededinfo(strats[i], methods[i])
+            addinfo!(infodict, electorate, spec, noisevector*correlatednoises[i], iidnoises[i], respondants, rng)
         end
     end
     infodict[nothing] = nothing
@@ -228,6 +253,15 @@ function addspecificinfo!(infodict, electorate, spec::CompMatPosSpec,
     infodict[spec] = (infodict[spec.pollspec], frontrunners)
 end
 
+function addspecificinfo!(infodict, electorate, spec::SupporterUtilSpec, useless_args...)
+    ncand = size(electorate, 1)
+    chosen_voters = Matrix{Float64}(undef, ncand, ncand)
+    for cand in 1:ncand
+        chosen_voters[:, cand] = electorate[:, argmax(electorate[cand, :])]
+    end
+    infodict[spec] = chosen_voters
+end
+
 """
     neededinfo(strat::VoterStrategy, ::VotingMethod)
 
@@ -235,6 +269,7 @@ Specify the info (polls or estimated probabilities) needed to use the strategy.
 
 Must return a set.
 """
+neededinfo(spec::Any, ::VotingMethod) = neededinfo(spec)
 neededinfo(strat::VoterStrategy, ::VotingMethod) = Set([strat.neededinfo])
 neededinfo(::BlindStrategy, ::VotingMethod) = Set()
 neededinfo(spec::PollSpec) = neededinfo(spec.estrat, spec.method)
@@ -243,7 +278,14 @@ neededinfo(spec::CrudeTop3Spec) = Set([spec.pollspec])
 neededinfo(spec::TieForTwoSpec) = Set([spec.winprobspec])
 neededinfo(spec::PositionSpec) = Set([spec.pollspec])
 neededinfo(spec::CompMatPosSpec) = Set([spec.pollspec])
+neededinfo(spec::SupporterUtilSpec) = Set()
+neededinfo(spec::CopyNaturalSupporterInstruction) = Set([SupporterUtilSpec()])
+neededinfo(spec::BlindInstructionStrategy) = Set()
+neededinfo(spec::ArbitrarySelector) = Set()
 
+"""
+    neededinfo(estrat::ElectorateStrategy, method::VotingMethod)
+"""
 function neededinfo(estrat::ElectorateStrategy, method::VotingMethod)
     reduce(union, [neededinfo(strat, method) for strat in estrat.stratlist])
 end
@@ -255,8 +297,13 @@ Specify the info the will be provided to the strategy function.
 
 Unlike neededinfo, returns the object rather than a set containing it, or nothing if no info is needed.
 """
+info_used(s::Any, ::VotingMethod) = info_used(s)
 info_used(strat::InformedStrategy, ::VotingMethod) = strat.neededinfo
 info_used(::BlindStrategy, ::VotingMethod) = nothing
+info_used(::BlindInstructionStrategy, ::VotingMethod) = nothing
+info_used(selector::InstructionSelector) = selector.neededinfo
+info_used(selector::ArbitrarySelector) = nothing
+info_used(::CopyNaturalSupporterInstruction) = SupporterUtilSpec()
 
 """
     pollscalefactor(::VotingMethod, ballots)

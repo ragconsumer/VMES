@@ -17,6 +17,9 @@ export make_electorate, ic, ImpartialCulture, DimModel, DCCModel, dcc, RepDrawMo
 export calc_vses, calc_primary_vse, calc_esif, calc_cid, calc_eve
 export collect_strat_stats, influence_cdf, distance_from_uniform
 export util_pert_on_score_stats, total_variation_distance_from_uniform, earth_movers_distance_from_uniform
+export calc_cvii, bulletinstruction, abstaininstruction, AssistInstruction, CopyNaturalSupporterInstruction
+export ArbitrarySelector, OnePositionalSelector, TwoPositionalSelectorOneWay, TwoPositionalSelectorTwoWay
+export instruct_votes, select_instructors_and_trackees, num_trackees
 
 
 import Statistics, Random
@@ -29,6 +32,8 @@ include("macros.jl")
 include("vms.jl")
 include("strategies.jl")
 include("electoratestrategies.jl")
+include("instructionstrats.jl")
+include("instructionselectors.jl")
 include("polls.jl")
 include("fancypolls.jl")
 include("strat_templates.jl")
@@ -46,5 +51,7 @@ include("fixedelectorates.jl")
 include("metrictools.jl")
 include("charts.jl")
 include("voter_model_statistics.jl")
+include("cvii.jl")
+include("instructiontemplates.jl")
 
 end

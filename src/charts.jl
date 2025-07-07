@@ -197,6 +197,15 @@ function esif_expstrat_df(df::DataFrame)
     return df2
 end
 
+function esif_expbasestrat_df(df::DataFrame)
+    df2 = DataFrame()
+    df2.Method = string.(df.Method)
+    df2[!,"User's Strategy"] = string.(df[:,"Strategy"])
+    df2.Exponent = parse_expscale.(string.(df[:,"Base Strategy"]))
+    df2.ESIF = df.ESIF
+    return df2
+end
+
 function vse_approval_threshold_df(df::DataFrame)
     df2 = DataFrame()
     df2.Method = string.(df.Method)

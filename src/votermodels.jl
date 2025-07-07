@@ -39,6 +39,8 @@ struct DCCModel <: SpatialModel
     caringdist
 end
 
+QuinnModel = DCCModel
+
 """
 Always yields the same electorate; only useful for testing.
 """
@@ -56,6 +58,7 @@ Use the defaults from the Python VSE code.
 dcc = DCCModel(Distributions.Uniform(), 0.2,
                         Distributions.Uniform(), 0.2,
                         1, Distributions.Beta(6, 3))
+quinn = dcc
 
 """
 A container for containing both an electorate and the seed that generated it.
