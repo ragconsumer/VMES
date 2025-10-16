@@ -51,9 +51,6 @@ function calc_cvii(niter::Int,
                    votercorrelatednoise::Float64=0.1, voteriidnoise::Float64=0.0,
                    candcorrelatednoise::Float64=0.1, candiidnoise::Float64=0.0;
                    iter_per_update=0, seed=abs(rand(Int)))
-   #fgtotals = [empty_results_(arglist) for _ in 1:Threads.nthreads()]
-   #bgtotals = [empty_results_(arglist) for _ in 1:Threads.nthreads()]
-   #abstaintotals = [empty_results_(arglist) for _ in 1:Threads.nthreads()]
    threadtotals = [[empty_results(arglist) for _ in 1:Threads.nthreads()] for _ in 1:3]
    top_rng = Random.Xoshiro(seed)
    threadseeds = abs.(rand(top_rng, Int, Threads.nthreads()))
@@ -232,12 +229,12 @@ function cvii_totals_to_df(arglist::Vector, fgtotals::Vector,
                            bgtotals::Vector, abstaintotals::Vector)
    # Convert the totals to a DataFrame
    df = DataFrame("Method"=> String[],
-                  "Foreground Strategies" => String[],
-                  "Strat Position" => Int[],
+                  "FG Instructions" => String[],
+                  "Position" => Int[],
                   "CVII" => Float64[],
                   "Selector" => String[],
-                  "Background Instruction Strat" => String[],
-                  "Electorate Strategy" => String[],
+                  "BG Instruction" => String[],
+                  "EStrat" => String[],
                   "FG Wins" => Int[],
                   "BG Wins" => Int[],
                   "Abstain Wins" => Int[])
@@ -252,15 +249,15 @@ function cvii_totals_to_df(arglist::Vector, fgtotals::Vector,
                      abstainwins = abstaintotals[i][method_i, estrat_i, bgistrat_i, selector_i, position]
                      row = Dict(
                         "Method" => string(method),
-                        "Electorate Strategy" => string(estrat),
-                        "Background Instruction Strat" => string(bgistrat),
+                        "EStrat" => string(estrat),
+                        "BG Instruction" => string(bgistrat),
                         "Selector" => string(selector),
-                        "Foreground Strategies" => string(fgistrats[selector_i]),
-                        "Strat Position" => position,
+                        "FG Instructions" => string([fgistrat for fgistrat in fgistrats[selector_i]]...),
+                        "Position" => position,
                         "FG Wins" => fgwins,
                         "BG Wins" => bgwins,
                         "Abstain Wins" => abstainwins,
-                        "CVII" => bgwins != abstainwins ? (fgwins - abstainwins)/(bgwins - abstainwins) : missing
+                        "CVII" => bgwins != abstainwins ? (fgwins - abstainwins)/(bgwins - abstainwins) - 1 : missing
                      )
                      push!(df, row)
                   end

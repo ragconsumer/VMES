@@ -281,6 +281,7 @@ neededinfo(spec::CompMatPosSpec) = Set([spec.pollspec])
 neededinfo(spec::SupporterUtilSpec) = Set()
 neededinfo(spec::CopyNaturalSupporterInstruction) = Set([SupporterUtilSpec()])
 neededinfo(spec::BlindInstructionStrategy) = Set()
+neededinfo(instruction::BulletMixInstruction) = neededinfo(instruction.other_instruction)
 neededinfo(spec::ArbitrarySelector) = Set()
 
 """
@@ -304,6 +305,7 @@ info_used(::BlindInstructionStrategy, ::VotingMethod) = nothing
 info_used(selector::InstructionSelector) = selector.neededinfo
 info_used(selector::ArbitrarySelector) = nothing
 info_used(::CopyNaturalSupporterInstruction) = SupporterUtilSpec()
+info_used(instruction::BulletMixInstruction) = info_used(instruction.other_instruction)
 
 """
     pollscalefactor(::VotingMethod, ballots)

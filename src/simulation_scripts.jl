@@ -57,4 +57,26 @@ VMES.esif_contour_chart(gdf[1], VMES.parse_expscale)
 @time df = VMES.calc_cid(1000, VMES.dcc,
     [VMES.LimitedVoting(4), VMES.approval, VMES.sntv, VMES.stv, VMES.stvminimax],
     repeat([VMES.ElectorateStrategy(VMES.hon, 72)], 5), 24, 20, 4, iter_per_update=10)
+
+@time df = VMES.calc_cvii(1000, VMES.quinn, [
+    ([VMES.approval], [VMES.ElectorateStrategy(VMES.hon, 100)],[VMES.bulletinstruction],
+    [VMES.ArbitrarySelector(1, 2)], [[VMES.AssistInstruction(1)]]),
+    ([VMES.approvaltop2], [VMES.ElectorateStrategy(VMES.hon, 100)],[VMES.bulletinstruction],
+    [VMES.ArbitrarySelector(1, 2)], [[VMES.AssistInstruction(1)]]),
+    ([VMES.irv, VMES.minimax], [VMES.ElectorateStrategy(VMES.hon, 100)], [VMES.bulletinstruction],
+    [VMES.ArbitrarySelector(1, 2)], [[VMES.AssistInstruction(4)]]),
+    ([VMES.star], [VMES.ElectorateStrategy(VMES.hon, 100)], [VMES.bulletinstruction],
+    repeat([VMES.ArbitrarySelector(1, 2)], 5), [[VMES.AssistInstruction(i)] for i in 1:5])],
+    100, 10, 6, iter_per_update=100)
+
+@time dfcrazy = VMES.calc_cvii(2000, VMES.quinn, [
+        ([VMES.approval], [VMES.ElectorateStrategy(VMES.hon, 200)],[VMES.bulletinstruction],
+        [VMES.ArbitrarySelector(1, 2)], [[VMES.AssistInstruction(1)]]),
+        ([VMES.approvaltop2], [VMES.ElectorateStrategy(VMES.hon, 200)],[VMES.bulletinstruction],
+        [VMES.ArbitrarySelector(1, 2)], [[VMES.AssistInstruction(1)]]),
+        ([VMES.irv, VMES.minimax], [VMES.ElectorateStrategy(VMES.hon, 200)], [VMES.bulletinstruction],
+            [VMES.ArbitrarySelector(1, 2)], [[VMES.AssistInstruction(4)]]),
+        ([VMES.star], [VMES.ElectorateStrategy(VMES.hon, 200)], [VMES.bulletinstruction],
+        repeat([VMES.ArbitrarySelector(1, 2)], 5), [[VMES.AssistInstruction(i)] for i in 1:5])],
+        200, 300, 10, iter_per_update=1000)
     

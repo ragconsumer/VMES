@@ -17,7 +17,7 @@ export make_electorate, ic, ImpartialCulture, DimModel, DCCModel, dcc, RepDrawMo
 export calc_vses, calc_primary_vse, calc_esif, calc_cid, calc_eve
 export collect_strat_stats, influence_cdf, distance_from_uniform
 export util_pert_on_score_stats, total_variation_distance_from_uniform, earth_movers_distance_from_uniform
-export calc_cvii, bulletinstruction, abstaininstruction, AssistInstruction, CopyNaturalSupporterInstruction
+export calc_cvii, bulletinstruction, abstaininstruction, AssistInstruction, CopyNaturalSupporterInstruction, BulletMixInstruction
 export ArbitrarySelector, OnePositionalSelector, TwoPositionalSelectorOneWay, TwoPositionalSelectorTwoWay
 export instruct_votes, select_instructors_and_trackees, num_trackees
 

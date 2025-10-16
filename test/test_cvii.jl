@@ -5,6 +5,14 @@
                                                                 3 3
                                                                 0 0
                                                                 0 0]
+        @test instruct_votes(2, bulletinstruction, 2, 4, approvaltop2) == [0 0
+                                                                           1 1
+                                                                           0 0
+                                                                           0 0
+                                                                           0 0
+                                                                           0 0
+                                                                           0 0
+                                                                           0 0]
         @test instruct_votes(2, abstaininstruction, 2, 3, irv) == [0 0
                                                                 0 0
                                                                 0 0]
@@ -17,6 +25,9 @@
                                                                             1 1 5]) == [0 0
                                                                                         2 2
                                                                                         1 1]
+        @test instruct_votes(3, BulletMixInstruction(AssistInstruction(4), 1), 3, 3, star, 2) == [0 0 0
+                                                                                                  4 0 0
+                                                                                                  5 5 5]
     end
 
     @testset "Instruction Selectors" begin
