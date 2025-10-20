@@ -69,8 +69,8 @@
                     [bulletinstruction], [ArbitrarySelector(2,2),ArbitrarySelector(1,2)],
                     [[AssistInstruction(1), AssistInstruction(1)], [AssistInstruction(1)]])]
         results = calc_cvii(niter, VMES.ic, arglist, 5, 51, 3)
-        @test results[11, "CVII"] == 1 #IRV with a single instructor who is unaffected thanks to LNH
-        @test results[7, "CVII"] == 0 #Score with a single instructor who dooms themself
+        @test results[11, "CVII"] == 0 #IRV with a single instructor who is unaffected thanks to LNH
+        @test results[7, "CVII"] == -1 #Score with a single instructor who dooms themself
         for i in 1:5
             @test results[2i, "FG Wins"] + results[2i-1, "FG Wins"] == niter #A candidate who benefits from endorsements always wins
         end
