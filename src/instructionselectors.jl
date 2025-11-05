@@ -3,7 +3,7 @@ neededinfo(s::InstructionSelector) = s.neededinfo
 selector_names = Dict{InstructionSelector, String}()
 
 """
-Selects instructors based purely on candidate index, without using polls.
+Selects instructors randomly, without using polls.
 """
 struct ArbitrarySelector <: InstructionSelector
     ninstructors::Int
@@ -54,10 +54,12 @@ Returns a tuple of three vectors:
 - The third contains vectors of candidate indices that are the targets for the instruction strategies;
     the ith vector has the targets of the ith instructor.
 """
-function select_instructors_and_trackees(selector::ArbitrarySelector,_...)
-    targets = [i for i in 1:selector.ninstructors] .% selector.ntrack .+ 1
-    targets = [[i] for i in targets]
-    return collect(1:selector.ninstructors), collect(1:selector.ntrack), targets
+function select_instructors_and_trackees(selector::ArbitrarySelector, ncand::Int, args...)
+    chosen_cands = Random.randperm(ncand)[1:max(selector.ntrack,selector.ninstructors)]
+    instructors = chosen_cands[1:selector.ninstructors]
+    trackees = chosen_cands[1:selector.ntrack]
+    targets = [[chosen_cands[i<length(chosen_cands) ? i+1 : 1]] for i in 1:selector.ninstructors]
+    return instructors, trackees, targets
 end
     
 function select_instructors_and_trackees(selector::OnePositionalSelector, method::VotingMethod, poll::AbstractArray)
@@ -77,4 +79,8 @@ function select_instructors_and_trackees(selector::TwoPositionalSelectorTwoWay, 
     i1 = placements[selector.position1]
     i2 = placements[selector.position2] # i1 and i2 are the instructors
     return [i1, i2], [i1, i2], [[i2],[i1]]
+end
+
+function select_instructors_and_trackees(selector::InstructionSelector, ncand::Int, args...)
+    select_instructors_and_trackees(selector, args...)
 end

@@ -58,8 +58,8 @@ function calc_cvii(niter::Int,
       iterationsinthread = niter ÷ Threads.nthreads() + (tid <= niter % Threads.nthreads() ? 1 : 0)
       rng = Random.Xoshiro(threadseeds[tid])
       for i in 1:iterationsinthread
-         if iter_per_update > 0 && i % iter_per_update == 0
-               println("Iteration $i in thread $tid")
+         if iter_per_update > 0 && i % iter_per_update == 0 && tid == 1
+               println("Iteration $i")
          end
          results = one_cvii_iter(vmodel, arglist,
                                  independentvoters, loyalists_per_cand, ncand,
@@ -81,7 +81,18 @@ function calc_cvii(niter::Int,
          end
       end
    end
-   return cvii_totals_to_df(arglist, totals...)
+   df = cvii_totals_to_df(arglist, totals...)
+   df[!, "Voter Model"] .= [vmodel]
+   df[!, "Independent Voters"] .= independentvoters
+   df[!, "Loyalists per Candidate"] .= loyalists_per_cand
+   df[!, "ncand"] .= ncand
+   df[!, "nwinners"] .= nwinners
+   df[!, "Voter Correlated Noise"] .= votercorrelatednoise
+   df[!, "Candidate IID Noise"] .= voteriidnoise
+   df[!, "Candidate Correlated Noise"] .= candcorrelatednoise
+   df[!, "Candidate IID Noise"] .= candiidnoise
+   df[!, "Iterations"] .= niter
+   return df
 end
 
 
@@ -114,8 +125,8 @@ function one_cvii_iter(vmodel::VoterModel,
             info_for_strat = isnothing(info_used(bgistrat, methods[1])) ? nothing : infodict[info_used(bgistrat, methods[1])]
             base_loyalist_ballots = reduce(hcat, [instruct_votes(i, bgistrat, loyalists_per_cand, ncand, methods[1],
                                           info_for_strat) for i in 1:ncand])
-            base_ballots = [independent_ballots base_loyalist_ballots]
-            ballots = copy(base_ballots)
+            #base_ballots = [independent_ballots base_loyalist_ballots]
+            ballots = [independent_ballots copy(base_loyalist_ballots)]
             for (method_i, method) in enumerate(methods)
                basewinners = getwinners(ballots, method, nwinners)
                abstain_winners = Matrix{Int}(undef, nwinners, ncand)
@@ -125,23 +136,20 @@ function one_cvii_iter(vmodel::VoterModel,
                      instruct_votes(cand, abstaininstruction, loyalists_per_cand, ncand, method)
                   abstain_winners[:, cand] = getwinners(ballots, method, nwinners)
                   ballots[:, independentvoters+(cand-1)*loyalists_per_cand+1:independentvoters+(cand)*loyalists_per_cand] =
-                     base_ballots[:, independentvoters+(cand-1)*loyalists_per_cand+1:independentvoters+(cand)*loyalists_per_cand]
+                     base_loyalist_ballots[:, (cand-1)*loyalists_per_cand+1:(cand)*loyalists_per_cand]
                end
                for (selector_i, (selector_template, fgistratvector)) in enumerate(zip(selectors, fgistrats))
                   # Choose the instructors and candidates to track
                   selector = selectorfromtemplate(selector_template, estrat, hypot(candcorrelatednoise, candiidnoise))
                   instructors, cands_to_track, targets = select_instructors_and_trackees(
-                     selector, methods[1], infodict[info_used(selector)])
-                  # Copy the ballots so that we can reset them later
-                  oldballots = [ballots[:,
-                     independentvoters+(cand_i-1)*loyalists_per_cand+1:independentvoters+(cand_i)*loyalists_per_cand]
-                     for cand_i in instructors]
+                     selector, ncand, methods[1], infodict[info_used(selector)])
                   # For each instructor, cast the ballots according to the foreground instruction strategy
-                  for (position, istrat_template) in zip(instructors, fgistratvector)
+                  for (instructor_number, (position, istrat_template)) in enumerate(zip(instructors, fgistratvector))
                      istrat = isfromtemplate(istrat_template, estrat, hypot(candcorrelatednoise, candiidnoise))
                      info_for_strat = isnothing(info_used(istrat, methods[1])) ? nothing : infodict[info_used(istrat, methods[1])]
                      ballots[:, independentvoters+(position-1)*loyalists_per_cand+1:independentvoters+(position)*loyalists_per_cand] =
-                        instruct_votes(position, istrat, loyalists_per_cand, ncand, methods[1], info_for_strat, targets[position]...)
+                        instruct_votes(position, istrat, loyalists_per_cand, ncand, methods[1],
+                                       info_for_strat, targets[instructor_number]...)
                   end
                   new_winners = getwinners(ballots, method, nwinners)
                   # Record the results
@@ -162,7 +170,7 @@ function one_cvii_iter(vmodel::VoterModel,
                   #reset the ballots
                   for cand_i in instructors
                      ballots[:, independentvoters+(cand_i-1)*loyalists_per_cand+1:independentvoters+(cand_i)*loyalists_per_cand] =
-                        oldballots[cand_i]
+                        base_loyalist_ballots[:, (cand_i-1)*loyalists_per_cand+1:(cand_i)*loyalists_per_cand]
                   end
                end
             end
@@ -257,7 +265,7 @@ function cvii_totals_to_df(arglist::Vector, fgtotals::Vector,
                         "FG Wins" => fgwins,
                         "BG Wins" => bgwins,
                         "Abstain Wins" => abstainwins,
-                        "CVII" => bgwins != abstainwins ? (fgwins - abstainwins)/(bgwins - abstainwins) - 1 : missing
+                        "CVII" => bgwins != abstainwins ? (fgwins - abstainwins)/(bgwins - abstainwins) - 1 : NaN
                      )
                      push!(df, row)
                   end

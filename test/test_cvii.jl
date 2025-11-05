@@ -31,10 +31,25 @@
     end
 
     @testset "Instruction Selectors" begin
-        @test VMES.select_instructors_and_trackees(ArbitrarySelector(2,2)) == (
-            [1,2], [1,2], [[2],[1]])
-        @test VMES.select_instructors_and_trackees(ArbitrarySelector(1,2)) == (
-            [1], [1,2], [[2]])
+        s = VMES.select_instructors_and_trackees(ArbitrarySelector(2,2), 4)
+        @test length(s[1]) == 2
+        @test length(s[2]) == 2
+        @test length(s[3]) == 2
+        @test length(s[3][1]) == 1
+        s = VMES.select_instructors_and_trackees(ArbitrarySelector(1,2), 4)
+        @test length(s[1]) == 1
+        @test length(s[2]) == 2
+        @test length(s[3]) == 1
+        @test length(s[3][1]) == 1
+        @test s[1][1] != s[2][2]
+        for i in 1:5
+            s = VMES.select_instructors_and_trackees(ArbitrarySelector(2,2), 4)
+            @test s[1][1] != s[1][2]
+            @test s[1][1] == s[2][1]
+            @test s[1][2] == s[2][2]
+            @test s[3][1][1] == s[2][2]
+            @test s[3][2][1] == s[2][1]
+        end
         @test VMES.select_instructors_and_trackees(OnePositionalSelector(nothing, 2), approval, [0.2,0.4,0.3,0.1]) == (
             [3], [3], [[]])
         @test VMES.select_instructors_and_trackees(TwoPositionalSelectorOneWay(nothing, 2, 3), approval, [0.2,0.4,0.3,0.1]) == (

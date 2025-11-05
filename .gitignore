@@ -4,3 +4,4 @@
 *.svg
 *.csv
 .github/copilot-instructions.md
+*.csv#
