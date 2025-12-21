@@ -7,6 +7,7 @@ include("test_voter_models.jl")
 include("test_strategies.jl")
 include("test_vm_tabulation.jl")
 include("test_cvii.jl")
+include("test_freeriding.jl")
 include("test_metrics.jl")
 
 @testset "Electorate Strategies and Templates" begin

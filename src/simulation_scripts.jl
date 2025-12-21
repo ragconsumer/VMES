@@ -102,3 +102,7 @@ es = VMES.ElectorateStrategy(VMES.hon, 0, 225, 75)
     ([VMES.star], [es], [VMES.bulletinstruction],
     repeat([VMES.ArbitrarySelector(1, 2)], 5), [[VMES.AssistInstruction(i)] for i in 1:5])],
     300, n, 6, iter_per_update=1000) for n in [1,2,3,5,7,10,15,20,25,30,40,50,60]]...)
+
+@time df = VMES.free_riding_incentives(10000, VMES.quinn,
+        [([VMES.sss, VMES.allocatedscore, VMES.s5hr, VMES.asr, VMES.scv, VMES.scvr],
+    [VMES.ElectorateStrategy(VMES.ExpScale(3), 100)], 0:5)], 51, 10, 4, 5, 1; iter_per_update=100)

@@ -20,6 +20,7 @@ export util_pert_on_score_stats, total_variation_distance_from_uniform, earth_mo
 export calc_cvii, bulletinstruction, abstaininstruction, AssistInstruction, CopyNaturalSupporterInstruction, BulletMixInstruction
 export ArbitrarySelector, OnePositionalSelector, TwoPositionalSelectorOneWay, TwoPositionalSelectorTwoWay
 export instruct_votes, select_instructors_and_trackees, num_trackees
+export FreeRidingModel, FreeRide, free_riding_incentives
 
 
 import Statistics, Random
@@ -38,6 +39,7 @@ include("polls.jl")
 include("fancypolls.jl")
 include("strat_templates.jl")
 include("votermodels.jl")
+include("freeriding.jl")
 include("strat_statistics.jl")
 include("agreementmatrix.jl")
 include("vse.jl")

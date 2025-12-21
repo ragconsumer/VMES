@@ -16,7 +16,7 @@ function calc_stratmetric(metric::StrategicMetric, niter::Integer, vmodel::Voter
         iterationsinthread = niter ÷ Threads.nthreads() + (tid <= niter % Threads.nthreads() ? 1 : 0)
         rng = Random.Xoshiro(threadseeds[tid])
         for i in 1:iterationsinthread
-            if iter_per_update > 0 && i % iter_per_update == 0
+            if iter_per_update > 0 && tid == 1 && i % iter_per_update == 0
                 println("Iteration $i in thread $tid")
             end
             partialresults[:, :, tid] += one_stratmetric_iter(metric, vmodel, m_and_s_abstain, nvot, ncand,
