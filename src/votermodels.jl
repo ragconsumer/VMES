@@ -24,6 +24,39 @@ struct BaseQualityNoiseModel <: VoterModel
     qualitystd::Float64
     noisestd::Float64
 end
+"""
+An augmented version of base_model that adds voter-specific noise importance, preference exponents,
+and importance of candidate quality.
+"""
+struct BQNEModel <: VoterModel
+    base_model::VoterModel
+    base_model_std::Float64
+    quality_importance_distribution::Distributions.Distribution
+    noise_importance_distribution::Distributions.Distribution
+    exponent_distribution::Distributions.Distribution
+end
+
+function BQNEModel(quality_importance_distribution::Distributions.Distribution,
+          noise_importance_distribution::Distributions.Distribution,
+          exponent_distribution::Distributions.Distribution)
+    BQNEModel(quinn, 0.4,
+        Distributions.Truncated(quality_importance_distribution, 0.0, 1.0),
+        Distributions.Truncated(noise_importance_distribution, 0.0, 1.0),
+        exponent_distribution)
+end
+function BQNEModel(quality_importance_mean::Float64, quality_importance_std::Float64,
+            noise_importance_mean::Float64, noise_importance_std::Float64,
+            exponent_log_mean::Float64, exponent_log_std::Float64)
+    noise_precision = noise_importance_mean*(1-noise_importance_mean)/(noise_importance_std^2) - 1
+    noise_alpha = noise_importance_mean*noise_precision
+    noise_beta = (1 - noise_importance_mean)*noise_precision
+    quality_precision = quality_importance_mean*(1-quality_importance_mean)/(quality_importance_std^2) - 1
+    quality_alpha = quality_importance_mean*quality_precision
+    quality_beta = (1 - quality_importance_mean)*quality_precision
+    BQNEModel(Distributions.Beta(quality_alpha, quality_beta),
+        Distributions.Beta(noise_alpha, noise_beta),
+        Distributions.LogNormal(exponent_log_mean, exponent_log_std))
+end
 
 struct ExpPreferenceModel <: VoterModel
     basemodel::VoterModel
@@ -190,6 +223,25 @@ function make_electorate(model::BaseQualityNoiseModel, nvot::Int, ncand::Int, se
         electorate[c,:] .+= model.qualitystd*randn(rng)
     end
     electorate += model.noisestd*randn(rng, ncand, nvot)
+end
+
+function make_electorate(model::BQNEModel, nvot::Int, ncand::Int, seed::Int)
+    rng = Random.Xoshiro(seed)
+    electorate = make_electorate(model.base_model, nvot, ncand, seed)./model.base_model_std
+    candidate_qualities = randn(rng, ncand)
+    for i in 1:nvot
+        quality_importance = rand(rng, model.quality_importance_distribution)
+        noise_importance = rand(rng, model.noise_importance_distribution)
+        for c in 1:ncand
+            electorate[c, i] = (1-noise_importance)*(quality_importance*candidate_qualities[c]
+                + (1-quality_importance)*electorate[c, i]) + noise_importance*randn(rng)
+        end
+        exponent = rand(rng, model.exponent_distribution)
+        electorate[:, i] .-= minimum(electorate[:, i]) #Make all utilities nonnegative
+        electorate[:, i] .^= exponent
+        electorate[:, i] ./= Statistics.std(electorate[:, i]) #Give all voters the same standard deviation for their utilities
+    end
+    return SeededElectorate(electorate, seed)
 end
 
 function make_electorate(model::ExpPreferenceModel, nvot::Int, ncand::Int, seed::Int)

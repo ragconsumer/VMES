@@ -106,3 +106,9 @@ es = VMES.ElectorateStrategy(VMES.hon, 0, 225, 75)
 @time df = VMES.free_riding_incentives(10000, VMES.quinn,
         [([VMES.sss, VMES.allocatedscore, VMES.s5hr, VMES.asr, VMES.scv, VMES.scvr],
     [VMES.ElectorateStrategy(VMES.ExpScale(3), 100)], 0:5)], 51, 10, 4, 5, 1; iter_per_update=100)
+
+m = VMES.BQNEModel(0.1,0.05,0.5,0.3,0.3,0.4)
+@time df = VMES.free_riding_incentives(10000, m,
+        [([VMES.stv, VMES.stvminimax], [VMES.ElectorateStrategy(VMES.hon, 80, 10, 10)],[0,7,8,9]),
+        ([VMES.sss, VMES.allocatedscore, VMES.s5hr, VMES.asr, VMES.scv, VMES.scvr],
+    [VMES.ElectorateStrategy(VMES.ExpScale(3), 80, 10, 10)], 0:5)], 100, 10, 4, 9, 1; iter_per_update=500)
