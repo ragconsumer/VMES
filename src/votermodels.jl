@@ -53,9 +53,42 @@ function BQNEModel(quality_importance_mean::Float64, quality_importance_std::Flo
     quality_precision = quality_importance_mean*(1-quality_importance_mean)/(quality_importance_std^2) - 1
     quality_alpha = quality_importance_mean*quality_precision
     quality_beta = (1 - quality_importance_mean)*quality_precision
-    BQNEModel(Distributions.Beta(quality_alpha, quality_beta),
+    BQNEModel(quinn, 0.4, Distributions.Beta(quality_alpha, quality_beta),
         Distributions.Beta(noise_alpha, noise_beta),
         Distributions.LogNormal(exponent_log_mean, exponent_log_std))
+end
+
+struct AugmentedQuinnModel <: VoterModel
+    q_mean::Float64
+    q_std::Float64
+    n_mean::Float64
+    n_std::Float64
+    e_log_mean::Float64
+    e_log_std::Float64
+end
+
+function make_electorate(model::AugmentedQuinnModel, nvot::Int, ncand::Int, seed::Int)
+    if model.q_std == 0.0
+        quality_importance_distribution = Distributions.Dirac(model.q_mean)
+    else
+        quality_precision = model.q_mean*(1-model.q_mean)/(model.q_std^2) - 1
+        quality_alpha = model.q_mean*quality_precision
+        quality_beta = (1 - model.q_mean)*quality_precision
+        quality_importance_distribution = Distributions.Beta(quality_alpha, quality_beta)
+    end
+    if model.n_std == 0.0
+        noise_importance_distribution = Distributions.Dirac(model.n_mean)
+    else
+        noise_precision = model.n_mean*(1-model.n_mean)/(model.n_std^2) - 1
+        noise_alpha = model.n_mean*noise_precision
+        noise_beta = (1 - model.n_mean)*noise_precision
+        noise_importance_distribution = Distributions.Beta(noise_alpha, noise_beta)
+    end
+    return make_electorate(
+        BQNEModel(quinn, 0.4, quality_importance_distribution,
+            noise_importance_distribution,
+            Distributions.LogNormal(model.e_log_mean, model.e_log_std)),
+        nvot, ncand, seed)
 end
 
 struct ExpPreferenceModel <: VoterModel
@@ -118,12 +151,27 @@ struct SpatialElectorate
     seed::Int
 end
 
+struct AugmentedElectorate <: AbstractMatrix{Float64}
+    voter_coordinates::Matrix{Float64}
+    caring_matrix::Matrix{Float64}
+    candidate_coordinates::Matrix{Float64}
+    utility_matrix::Matrix{Float64}
+    intercandidate_utility_matrix::Matrix{Float64}
+    candidate_qualities::Vector{Float64}
+    seed::Int
+end
+
+Base.size(e::AugmentedElectorate) = size(e.utility_matrix)
+Base.getindex(e::AugmentedElectorate, I::Vararg{Int,N}) where {N} = e.utility_matrix[I...]
+Base.setindex!(e::AugmentedElectorate, v::Float64, I::Vararg{Int,N}) where N = (e.utility_matrix[I...] = v)
+getseed(e::AugmentedElectorate) = e.seed
+
 function SpatialElectorate(vc::Matrix{Float64}, cm::Matrix{Float64}, cc::Matrix{Float64}, seed::Int)
     um = make_utility_matrix(vc, cm, cc)
     SpatialElectorate(vc, cm, cc, um, seed)
 end
 
-Base.size(e::SeededElectorate) = Base.size(e.data)
+Base.size(e::SeededElectorate) = size(e.data)
 Base.getindex(e::SeededElectorate, I::Vararg{Int,N}) where {N} = e.data[I...]
 Base.setindex!(e::SeededElectorate, v::Float64, I::Vararg{Int,N}) where N = (e.data[I...] = v)
 getseed(e::SeededElectorate) = e.seed
@@ -227,21 +275,29 @@ end
 
 function make_electorate(model::BQNEModel, nvot::Int, ncand::Int, seed::Int)
     rng = Random.Xoshiro(seed)
-    electorate = make_electorate(model.base_model, nvot, ncand, seed)./model.base_model_std
-    candidate_qualities = randn(rng, ncand)
+    electorate = make_electorate(model.base_model, nvot, ncand, seed)
+    electorate.utility_matrix ./= model.base_model_std
+    electorate.candidate_qualities .= randn(rng, ncand)
     for i in 1:nvot
         quality_importance = rand(rng, model.quality_importance_distribution)
         noise_importance = rand(rng, model.noise_importance_distribution)
         for c in 1:ncand
-            electorate[c, i] = (1-noise_importance)*(quality_importance*candidate_qualities[c]
-                + (1-quality_importance)*electorate[c, i]) + noise_importance*randn(rng)
+            electorate.utility_matrix[c, i] = (1-noise_importance)*(quality_importance*electorate.candidate_qualities[c]
+                + (1-quality_importance)*electorate.utility_matrix[c, i]) + noise_importance*randn(rng)
         end
         exponent = rand(rng, model.exponent_distribution)
-        electorate[:, i] .-= minimum(electorate[:, i]) #Make all utilities nonnegative
-        electorate[:, i] .^= exponent
-        electorate[:, i] ./= Statistics.std(electorate[:, i]) #Give all voters the same standard deviation for their utilities
+        electorate.utility_matrix[:, i] .-= minimum(electorate.utility_matrix[:, i]) #Make 0 the lowest utility
+        electorate.utility_matrix[:, i] .^= exponent
+        electorate.utility_matrix[:, i] ./= Statistics.std(electorate.utility_matrix[:, i]) #Give all voters the same standard deviation for their utilities
     end
-    return SeededElectorate(electorate, seed)
+    electorate.intercandidate_utility_matrix ./= model.base_model_std
+    for i in 1:ncand
+        quality_importance = rand(rng, model.quality_importance_distribution)
+        electorate.intercandidate_utility_matrix[:, i] = (1 - quality_importance)*electorate.intercandidate_utility_matrix[:, i] .+
+            quality_importance*electorate.candidate_qualities
+    end
+    #No noise or exponentiation for intercandidate utilities
+    return electorate
 end
 
 function make_electorate(model::ExpPreferenceModel, nvot::Int, ncand::Int, seed::Int)
@@ -255,7 +311,7 @@ function make_electorate(model::ExpPreferenceModel, nvot::Int, ncand::Int, seed:
 end
 
 """
-    make_electorate(model::DCCModel, nvot::Int, ncand::Int, seed::Int)
+    make_spatial_electorate(model::DCCModel, nvot::Int, ncand::Int, seed::Int)
 
 Create an electorate under a Dirichlet CrossCat model.
 
@@ -275,6 +331,26 @@ function make_spatial_electorate(model::DCCModel, nvot::Int, ncand::Int, seed::I
     normalize_weights(model, weights)
     utilmatrix = make_utility_matrix(voterpositions, weights, candpositions)
     return SpatialElectorate(voterpositions, weights[:, 1:nvot], candpositions, utilmatrix, seed)
+end
+
+function make_electorate(model::DCCModel, nvot::Int, ncand::Int, seed::Int)
+    rng = Random.Xoshiro(seed)
+    viewdims, dimweights = makeviews(model, rng)
+    nviews = length(viewdims)
+    views, clustercounts = assignclusters(model, nvot + ncand, nviews, rng)
+    clustermeans, clusterimportances = makeclusterprefs(model, nviews, viewdims, clustercounts, rng)
+    votersandcands, weights = makeprefpoints(model, views, viewdims, dimweights, clustermeans, clusterimportances, nviews, rng)
+    voterpositions = votersandcands[:, 1:nvot]
+    candpositions = votersandcands[:, nvot+1:nvot+ncand]
+    normalize_weights(model, weights)
+    voter_util_matrix = make_utility_matrix(voterpositions, weights, candpositions)
+    candidate_util_matrix = make_utility_matrix(candpositions, weights[:, nvot+1:nvot+ncand], candpositions)
+
+    return AugmentedElectorate(voterpositions, weights[:, 1:nvot], candpositions,
+        voter_util_matrix,
+        candidate_util_matrix,
+        zeros(Float64, ncand), #candidate qualities are not modeled in DCC
+        seed)
 end
 
 """
