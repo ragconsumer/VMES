@@ -398,6 +398,9 @@ end
 @namevm scv = CascadingScoreMethod(score, droop, 5, false, false)
 @namevm scvr = CascadingScoreMethod(score, droop, 5, true, true)
 @namevm stvminimax = STVCompMatMethod(minimax, droop)
+
+#Delegative Transfer Proportional STAR
+@namevm dtpstar = DTPScoreMethod(score, droop, 5, true)
 """
 A voting method that always returns the given results.
 Used exclusively for testing here, despite widespread use worldwide.

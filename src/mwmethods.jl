@@ -256,8 +256,36 @@ end
 
 A round of score voting with weighted ballots.
 """
-function weightedscorecount(ballots, weights, _)
+function weightedscorecount(ballots, weights, _, _)
     [sum(ballots[c, v]*weights[v] for v in eachindex(weights)) for c in 1:size(ballots,1)]
+end
+
+function monroe_total(ballots, weights, method, nwinners)
+    ncand, nvot = size(ballots)
+    quota = method.quota(nvot, nwinners)
+    candidate_totals = Vector{Float64}(undef, ncand)
+    for c in 1:ncand
+        score_counts = zeros(Float64, method.maxscore + 1)
+        for b in 1:nvot
+            score_counts[ballots[c, b] + 1] += weights[b]
+        end
+        weight_used = 0.0
+        candidate_total = 0.0
+        score = method.maxscore
+        while weight_used < quota && score > 0
+            candidate_total += score * min(score_counts[score + 1], quota - weight_used)
+            weight_used += min(score_counts[score + 1])
+            score -= 1
+        end
+        candidate_totals[c] = candidate_total
+    end
+    #Use the highest weighted score as a tiebreaker by adding it to the total
+    highest = maximum(candidate_totals)
+    finalists = [c for c in 1:ncand if candidate_totals[c] == highest]
+    if length(finalists) > 1
+        candidate_totals[finalists] += weightedscorecount(ballots, weights, nothing, nothing)[finalists]
+    end
+    return candidate_totals
 end
 
 norunoffs(::Int) = false
@@ -376,7 +404,7 @@ function tabulate(ballots, method::ScorePRTemplate, nwinners::Int)
     winnerdisplays = zeros(Float64, ncand)
     results = zeros(Float64, ncand, 0)
     while length(electedcands) < nwinners
-        round = method.mainroundresults(ballots, weights, electedcands)
+        round = method.mainroundresults(ballots, weights, method, nwinners)
         resultline = [i in electedcands ? winnerdisplays[i] : round[i] for i in 1:ncand]
         results = hcat(results, resultline)
         if method.use_runoffs(nwinners-length(electedcands))
@@ -471,6 +499,11 @@ end
     asreweight!, allweight, justscore
 )
 
+@namevm seqmonroe = ScorePRTemplate(
+    5, exacthare, monroe_total, norunoffs, nothing,
+    asreweight!, allweight, justscore
+)
+
 struct AllocatedRankedRobin <: RankedMethod
     quota
     reweight!
@@ -557,7 +590,7 @@ function positiveweightapproval!(electedcands, weights, ballots)
 end
 
 function weightedscorefallback!(electedcands, weights, ballots)
-    resultline = weightedscorecount(ballots, weights, nothing)
+    resultline = weightedscorecount(ballots, weights, nothing, nothing)
     for c in electedcands
         resultline[c] = -1
     end
@@ -905,6 +938,126 @@ function tabulate(ballots, method::STVCompMatMethod, nwinners::Int)
     return results
 end
 
+struct DTPScoreMethod <: ScoringMethod
+    orderingmethod
+    quota
+    maxscore::Int
+    runoff::Bool
+end
+
+struct DTPRankedMethod <: RankedMethod
+    orderingmethod
+    quota
+    runoff::Bool
+end
+
+DTPMethod = Union{DTPRankedMethod, DTPScoreMethod}
+
+function tabulate(ballots, method::DTPMethod, nwinners::Int, electorate::AugmentedElectorate)
+    ncand, nvot = size(ballots)
+    quota::Float64 = method.quota(nvot, nwinners)
+    pref_orders = reduce(hcat, indices_by_sorted_values(electorate.intercandidate_utility_matrix[:, c]) for c in 1:ncand)
+    delegative_powers = zeros(Float64, ncand)
+    m = topballotmark(ballots[:, 1], method)
+    for v in 1:nvot
+        favorites = [c for c in 1:ncand if ballots[c, v] == m]
+        delegative_powers[favorites] .+= 1/length(favorites)
+    end
+    orderingresults::Array{Float64} = tabulate(ballots, method.orderingmethod, 1)
+    voter_pref_order = placementsfromtab(orderingresults, method.orderingmethod)
+    results = orderingresults
+    if method.runoff
+        compmat = pairwisematrix(ballots)
+        results = hcat(results, compmat)
+    end
+    nelected = 0
+    candsleft = BitSet(1:ncand)
+    winners = BitSet()
+    delegees = pref_orders[1, :]
+    active_ranks = ones(Int, ncand)
+    while !isempty(candsleft)
+        #transfer votes
+        vote_totals = zeros(Float64, ncand)
+        for c in 1:ncand
+            while delegees[c] ∉ candsleft && active_ranks[c] < ncand
+                active_ranks[c] += 1
+                delegees[c] = pref_orders[active_ranks[c], c]
+            end
+            vote_totals[delegees[c]] += delegative_powers[c]
+        end
+        results = hcat(results, [c ∈ winners ? quota : vote_totals[c] for c in 1:ncand])
+        new_winners = [c for c in candsleft if vote_totals[c] >= quota]
+        nelected += length(new_winners)
+        #rescale delegative powers
+        for winner in new_winners
+            delete!(candsleft, winner)
+            scalefactor = (vote_totals[winner] - quota)/vote_totals[winner]
+            for c in 1:ncand
+                if delegees[c] == winner
+                    delegative_powers[c] *= scalefactor
+                end
+            end
+        end
+        if nelected == nwinners
+            break
+        end
+        union!(winners, new_winners)
+        if isempty(new_winners)
+            #eliminate someone
+            loser_placement = ncand
+            while voter_pref_order[loser_placement] ∉ candsleft
+                loser_placement -= 1
+            end
+            if method.runoff && length(candsleft) >= 2
+                loser_2_placement = loser_placement - 1
+                while voter_pref_order[loser_2_placement] ∉ candsleft
+                    loser_2_placement -= 1
+                end
+                l1, l2 = voter_pref_order[loser_placement], voter_pref_order[loser_2_placement]
+                if compmat[l1, l2] <= compmat[l2, l1]
+                    loser = l1
+                else
+                    loser = l2
+                end
+            else
+                loser = voter_pref_order[loser_placement]
+            end
+            delete!(candsleft, loser)
+        end
+    end
+    return results
+end
+
+"""
+Reweighted Range Voting
+
+weightfunc is a function that takes the total score given to winners by a ballot as
+its argument and returns the weight of that ballot
+"""
+struct RRV <: ScoringMethod
+    maxscore::Int
+    weightfunc::Function
+end
+
+@namevm rrv = RRV(5, x -> 1/(x/5+1)) #d'Hondt/Jefferson reweighting
+@namevm rrv_sl = RRV(5, x -> 1/(2x/5+1)) #Sainte-Laguë reweighting
+
+function tabulate(ballots, method::RRV, nwinners::Int)
+    winners = BitSet()
+    ncand = size(ballots, 1)
+    results = Array{Float64}(undef, ncand, 0)
+    while length(winners) < nwinners
+        totals = [c in winners ? -1 : Float64(sum(
+                        (ballot[c]*method.weightfunc(sum(ballot[d] for d in winners; init=0))
+                    for ballot in eachslice(ballots, dims=2)), init=0))
+                for c in 1:ncand]
+        winner = argmax(totals)
+        results = hcat(results, [c in winners ? results[c,end] : totals[c] for c in 1:ncand])
+        push!(winners, winner)
+    end
+    return results
+end
+
 """
 Sequential Proportional Approval Voting
 
@@ -920,17 +1073,5 @@ end
 @namevm spav_msl = SPAV(x -> x==0 ? 5/7 : 1/(2x+1)) #modified Sainte-Laguë reweighting
 
 function tabulate(ballots, method::SPAV, nwinners::Int)
-    winners = BitSet()
-    ncand = size(ballots, 1)
-    results = Array{Float64}(undef, ncand, 0)
-    while length(winners) < nwinners
-        totals = [c in winners ? -1 : Float64(sum(
-                        (method.weightfunc(sum(ballot[d] for d in winners; init=0))
-                    for ballot in eachslice(ballots, dims=2) if ballot[c] > 0), init=0))
-                for c in 1:ncand]
-        winner = argmax(totals)
-        results = hcat(results, [c in winners ? results[c,end] : totals[c] for c in 1:ncand])
-        push!(winners, winner)
-    end
-    return results
+    tabulate(ballots, RRV(1, method.weightfunc), nwinners)
 end

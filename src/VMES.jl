@@ -4,6 +4,7 @@ export tabulate, winnersfromtab, getwinners
 export plurality, pluralitytop2, approval, approvaltop2, score, star, irv, rcv, buirv, borda, minimax, rankedrobin
 export smithirv, smithplurality, smithscore
 export sss, allocatedscore, s5h, sssr, asr, s5hr, sssfr, asfr, s5hfr, asu, asur, mes, mesdroop, scv, scvr, blockstar
+export tea, teadroop, dtpstar, allocatedrankedrobin, rrv, seqmonroe
 export stvminimax, stv, sntv, LimitedVoting
 export spav, spav_sl, spav_msl
 export vote
@@ -14,6 +15,7 @@ export ElectorateStrategy, castballots
 export ESTemplate, BasicPollStratTemplate, esfromtemplate
 export BasicWinProbTemplate, approvalvatemplate, pluralityvatemplate, starvatemplate, irvvatemplate, esfromtemplate
 export make_electorate, ic, ImpartialCulture, DimModel, DCCModel, dcc, RepDrawModel, BaseQualityNoiseModel, ExpPreferenceModel
+export quinn, AugmentedQuinnModel, BQNEModel
 export calc_vses, calc_primary_vse, calc_esif, calc_cid, calc_eve
 export collect_strat_stats, influence_cdf, distance_from_uniform
 export util_pert_on_score_stats, total_variation_distance_from_uniform, earth_movers_distance_from_uniform
@@ -30,6 +32,7 @@ using Gadfly
 using DataFrames
 
 include("macros.jl")
+include("electorate_types.jl")
 include("vms.jl")
 include("strategies.jl")
 include("electoratestrategies.jl")

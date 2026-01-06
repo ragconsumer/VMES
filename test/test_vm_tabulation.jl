@@ -107,7 +107,9 @@
                                                           3 0 0]
     end
     @testset "Score PR" begin
-        @test VMES.weightedscorecount([5;4;0;;0;2;5], [1,0.5], sss) == [5, 5, 2.5]
+        @test VMES.weightedscorecount([5;4;0;;0;2;5], [1,0.5], sss, 4) == [5, 5, 2.5]
+        @test VMES.monroe_total([5;2;0;;3;4;5;;2;1;5], [1, 0.25, 0.5], VMES.seqmonroe, 2) == [6.25, 3.25, 3.75]
+        @test VMES.monroe_total(VMES.scoretest1, ones(Float64, 15), VMES.seqmonroe, 2) ≈ [70+37.5, 30, 25, 50+37.5]
         @test VMES.weightedstarrunoff([5, 10, 5], [5;0;0;;4;5;0;;0;0;5], [1, .5, 75]) == [1, .5, 0]
         weights = [1,0.9,1,1, 0.25]
         VMES.sssreweight!(weights, sss, [5;;5;;3;;3;;0], 1, 2, Set())
@@ -179,6 +181,14 @@
                                                           55 39 39 39
                                                           25 25 25 5
                                                           50 30 10 2]
+        @test VMES.tabulate(VMES.scoretest1, VMES.rrv, 3) ≈ [ 70.0  70.0     70.0
+                                                            55.0  20+5*3*5/9  20+5*3*5/9
+                                                            25.0  5*5*5/9  5*5*5/12
+                                                            50.0  25.0     10*5*5/14]
+        @test VMES.tabulate(VMES.scoretest1, VMES.seqmonroe, 2) ≈ [ 107.5  107.5
+                                                                    30.0   25.0
+                                                                    25.0   25.0
+                                                                    87.5   12.5]
     end
 
     tab = VMES.hontabulate(VMES.centersqueeze1, VMES.allocatedrankedrobin, 2)
@@ -210,6 +220,64 @@
                                                             25.0  5.0   5.0   0.0   0.0   5.0  25.0  5.0  25.0  1.0   0.0  1.0  0.0]
     end
 
+    @testset "DPT" begin
+        intercandidate_utils = [2 1 0.
+                                1 2 0
+                                0 1 2]
+        e = VMES.AugmentedElectorate([;;],[;;],[;;],[;;], intercandidate_utils, [], 0)
+        @test VMES.tabulate(VMES.castballots(VMES.centersqueeze1, VMES.ElectorateStrategy(VMES.hon, 21), VMES.dtpstar),
+                VMES.dtpstar, 1, e) == [25 0 5 5 5 0
+                                        28 6 0 7 2 7
+                                        22 6 4 0 4 4]
+        intercandidate_utils = [2 1 0.
+                                0 2 0
+                                1 1 2]
+        e = VMES.AugmentedElectorate([;;],[;;],[;;],[;;], intercandidate_utils, [], 0)
+        @test VMES.tabulate(VMES.castballots(VMES.centersqueeze1, VMES.ElectorateStrategy(VMES.hon, 21), VMES.dtpstar),
+                VMES.dtpstar, 1, e) == [25 0 5 5 5 0
+                                        28 6 0 7 2 2
+                                        22 6 4 0 4 9]
+        intercandidate_utils = [3 2 1 0.
+                                1 3 2 0
+                                0 1 3 2
+                                2 0 1 3]
+        e = VMES.AugmentedElectorate([;;],[;;],[;;],[;;], intercandidate_utils, [], 0)
+        @test VMES.tabulate(VMES.scoretest1, VMES.dtpstar, 1,
+            e) == [70.0 0.0 15.0 10.0 5.0 5.0 5.0 10.0
+                   55.0 0.0 0.0 10.0 5.0 0.0 5.0 0.0
+                   25.0 5.0 5.0 0.0 5.0 5.0 0.0 0.0
+                   50.0 0.0 10.0 10.0 0.0 5.0 5.0 5.0]
+        @test VMES.tabulate(VMES.scoretest1, VMES.dtpstar, 2,
+            e) == [70.0 0.0 15.0 10.0 5.0 5.0 5.0 10.0 6.0
+                   55.0 0.0 0.0 10.0 5.0 0.0 5.0 0.0 0.0
+                   25.0 5.0 5.0 0.0 5.0 5.0 0.0 0.0 0.0
+                   50.0 0.0 10.0 10.0 0.0 5.0 5.0 5.0 9.0]
+        @test VMES.tabulate(VMES.scoretest2, VMES.dtpstar, 2,
+            e) == [ 50.0  0.0  10.0  10.0  10.0  10.0  6.0
+                    20.0  0.0   0.0  10.0  10.0   0.0  0.0
+                    35.0  5.0   5.0   0.0  10.0   2.5  2.5
+                    25.0  5.0   5.0   0.0   0.0   2.5  6.5]
+        intercandidate_utils = [3 2 2 1.
+                                2 3 0 0
+                                0 1 3 2
+                                1 0 1 3]
+        e = VMES.AugmentedElectorate([;;],[;;],[;;],[;;], intercandidate_utils, [], 0)
+        @test VMES.tabulate(VMES.scoretest2, VMES.dtpstar, 2,
+            e) == [ 50.0  0.0  10.0  10.0  10.0  10.0  6.0  6.0  6.0
+                    20.0  0.0   0.0  10.0  10.0   0.0  4.0  4.0  9.0
+                    35.0  5.0   5.0   0.0  10.0   2.5  2.5  5.0  0.0
+                    25.0  5.0   5.0   0.0   0.0   2.5  2.5  0.0  0.0]
+        intercandidate_utils = [3 2 2 2.
+                                0 3 0 1
+                                1 1 3 0
+                                2 0 1 3]
+        e = VMES.AugmentedElectorate([;;],[;;],[;;],[;;], intercandidate_utils, [], 0)
+        @test VMES.tabulate(VMES.scoretest3, VMES.dtpstar, 3,
+            e) ≈ [ 20.0   0.0   4.0  4.0   4.0  4.0  7.0  6.0       6.0
+                    63.0  19.0   0.0  5.0  10.0  5.0  5.0  5+3/7   0.0
+                    72.0  19.0  14.0  0.0  10.0  5.0  5.0  5+4/7  11.0
+                    45.0   9.0   9.0  9.0   0.0  9.0  6.0  6.0       6.0]
+    end
     
 
     @testset "Approval-based PR methods" begin
