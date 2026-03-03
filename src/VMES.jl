@@ -17,6 +17,8 @@ export BasicWinProbTemplate, approvalvatemplate, pluralityvatemplate, starvatemp
 export make_electorate, ic, ImpartialCulture, DimModel, DCCModel, dcc, RepDrawModel, BaseQualityNoiseModel, ExpPreferenceModel
 export quinn, AugmentedQuinnModel, BQNEModel
 export calc_vses, calc_primary_vse, calc_esif, calc_cid, calc_eve
+export calc_winner_quality, vse, mean_utility, median_utility, favorite_utility, harmonic_utility, harmonic_sl_utility
+export monroe_efficiency, median_position_utility, mean_quality
 export collect_strat_stats, influence_cdf, distance_from_uniform
 export util_pert_on_score_stats, total_variation_distance_from_uniform, earth_movers_distance_from_uniform
 export calc_cvii, bulletinstruction, abstaininstruction, AssistInstruction, CopyNaturalSupporterInstruction, BulletMixInstruction
@@ -46,6 +48,7 @@ include("freeriding.jl")
 include("strat_statistics.jl")
 include("agreementmatrix.jl")
 include("vse.jl")
+include("winner_set_quality.jl")
 include("primaryvse.jl")
 include("strategicmetrics.jl")
 include("esif.jl")

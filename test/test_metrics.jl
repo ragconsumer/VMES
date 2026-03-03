@@ -27,6 +27,33 @@
         @test qs[2, 4] ≈ -1
     end
 
+    @testset "Winner Set Quality" begin
+        electorate = [10;5;1;0;;6;10;0;2;;0;0;10;10;;0;0;10;7]
+        @test VMES.low_end_winner_quality(electorate, mean_utility, 2) ≈ sum(electorate)/16
+        @test VMES.high_end_winner_quality(electorate, mean_utility, 2) ≈ 5
+        @test VMES.winner_set_quality(electorate, [1,4], mean_utility) ≈ 35/8
+        @test VMES.winner_set_quality(electorate, [1,4], median_utility) ≈ 35/8
+        @test VMES.winner_set_quality(electorate, [1,2,3], median_utility) ≈ 11/4
+        @test VMES.winner_set_quality(electorate, [1,2,4], favorite_utility) ≈ 37/4
+        @test VMES.winner_set_quality(electorate, [1,2], harmonic_utility) ≈ (12.5+13)/4
+        @test VMES.winner_set_quality(electorate, [1,2], harmonic_sl_utility) ≈ (20+11/3)/4
+        @test VMES.winner_set_quality(electorate, [1,2,3,4], monroe_efficiency) ≈ 10
+        @test VMES.winner_set_quality(electorate, [3,4], monroe_efficiency) ≈ 11.5/2
+        e2 = [10;11;0;0;;10;8;0;0;; 10;10;9;8;;10;10;9;8;; 3;5;1;2;;3;5;1;2;; 8;8;10;5;; 8;8;10;5]
+        @test VMES.winner_set_quality(e2, [1,2,3,4], monroe_efficiency) ≈ (20+16+10+20)/8
+        aug_e = VMES.AugmentedElectorate(zeros(2,4), ones(2,4),[-1;1;;0;0;;1;1;;0;1], e2, ones(3,3), [0,5,10,20], 42)
+        @test VMES.winner_set_quality(aug_e, [1,2,3], median_position_utility) ≈ -1
+        @test VMES.winner_set_quality(aug_e, [4,3], median_position_utility) ≈ -sqrt(1.25)
+        aug_e = VMES.AugmentedElectorate([10;1;;0;0], [0;1;;1;0],[-1;2;;1;1;;0;-3;;0;1], e2, ones(3,3), [0,5,10,20], 42)
+        @test VMES.winner_set_quality(aug_e, [1,2,3], median_position_utility) ≈ 0
+        @test VMES.winner_set_quality(aug_e, [4,3], mean_quality) == 15
+        
+        methods = [plurality, irv, minimax]
+        strats = [ElectorateStrategy(hon, 11) for _ in 1:3]
+        vses = calc_winner_quality(10, VMES.TestModel(VMES.centersqueeze1), methods, strats, 11, 3, 1, metrics=[vse]).VSE
+        @test vses ≈ [(10.5 - 32.5/3)/(13-32.5/3), (9 - 32.5/3)/(13-32.5/3), 1]
+    end
+
     @testset "Primary VSE" begin
         ge_methods = [plurality, irv, minimax]
         primary_methods = [sntv, sntv, sntv]

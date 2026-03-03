@@ -40,6 +40,12 @@ VMES.esif_contour_chart(gdf[1], VMES.parse_expscale)
     reduce(vcat,([repeat([VMES.ElectorateStrategy(VMES.ExpScale(2^x), 100)], 8) for x in 0.4:0.2:4.2])),
     100, 10, 4)
 
+@time df = VMES.calc_winner_quality(3000, VMES.dcc,
+    repeat([VMES.blockstar, VMES.ashare, VMES.allocatedscore,
+        VMES.scv, VMES.sss, VMES.s5hr, VMES.tea, VMES.scvr], 20),
+    reduce(vcat,([repeat([VMES.ElectorateStrategy(VMES.ExpScale(2^x), 100)], 8) for x in 0.4:0.2:4.2])),
+    100, 10, 4, iter_per_update=100)
+
 @time df = VMES.calc_vses(3000, VMES.dcc,
     [VMES.sntv; VMES.stv; VMES.stvminimax; repeat([VMES.blockstar, VMES.ashare, VMES.allocatedscore,
         VMES.scv, VMES.sss, VMES.s5hr, VMES.tea, VMES.scvr], 20)],

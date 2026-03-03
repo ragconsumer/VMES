@@ -1,13 +1,15 @@
 name = "VMES"
 uuid = "71f6ec8a-3d69-42df-a838-59cc2f60b5af"
-authors = ["Marcus Ogren"]
 version = "0.1.0"
+authors = ["Marcus Ogren"]
 
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Gadfly = "c91e804a-d5a3-530f-b6f0-dfbca275c004"
+HiGHS = "87dc4568-4c63-4d18-b0c0-bb2238e4078b"
+JuMP = "4076af6c-e467-56ae-b986-b466b2749572"
 LogExpFunctions = "2ab3a3ac-af41-5b50-aa03-7779005ae688"
 Optim = "429524aa-4258-5aef-a3af-852621145aeb"
 PProf = "e4faabce-9ead-11e9-39d9-4379958e3056"
@@ -19,6 +21,8 @@ CSV = "0.10"
 DataFrames = "1"
 Distributions = "0.25"
 Gadfly = "1"
+HiGHS = "1.21.1"
+JuMP = "1.29.4"
 LogExpFunctions = "0.3"
 Optim = "1"
 PProf = "2"
