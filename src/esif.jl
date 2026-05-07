@@ -72,7 +72,7 @@ function innerstratmetric!(utiltotals, ::ESIF, electorate, flexible_strategists:
         voter = electorate[:, voterindex]
         smallutindex = 0
         possibleballots, ballotlookup = stratballotdict(voter, strats, methods[1], baseballots[:, voterindex], infodict)
-        brm = ballotresultmap(possibleballots, baseballots, methods, basewinnersets, voter, voterindex, nwinners)
+        brm = ballotresultmap(possibleballots, baseballots, methods, basewinnersets, voter, voterindex, nwinners, electorate)
         for method_i in eachindex(methods)
             for strat_i in eachindex(strats)
                 utiltotals[:, startindex + smallutindex] += brm[:, ballotlookup[strat_i], method_i]
@@ -159,14 +159,14 @@ function stratballotdict(voter, strats, method, baseballot, infodict)
 end
 
 """
-    ballotresultmap(possibleballots, bgballots, methods, basewinnersets, voter, voterindex, nwinners)
+    ballotresultmap(possibleballots, bgballots, methods, basewinnersets, voter, voterindex, nwinners, electorate)
 
 Create a mapping from (ballot indicies * method indicies) to results
 
 Returns utiltable, where utiltable[metricindex, ballotindex, methodindex] is the utility gained
 by casting the ballot at ballotindex instead of using the background strategy.
 """
-function ballotresultmap(possibleballots, bgballots, methods, basewinnersets, voter, voterindex, nwinners)
+function ballotresultmap(possibleballots, bgballots, methods, basewinnersets, voter, voterindex, nwinners, electorate=[])
     utiltable = Array{Float64}(undef, numutilmetrics(nwinners), size(possibleballots, 2), length(methods))
     for (m_i, method) in enumerate(methods) #voting method index
         basewinners = basewinnersets[m_i]
@@ -178,7 +178,7 @@ function ballotresultmap(possibleballots, bgballots, methods, basewinnersets, vo
                 #replace the ballot in bgballots to avoid copying the whole array, then switch it back.
                 oldballot = bgballots[:, voterindex]
                 bgballots[:, voterindex] = possibleballots[:, b_i]
-                winners = getwinners(bgballots, method, nwinners)
+                winners = getwinners(bgballots, method, nwinners, electorate)
                 bgballots[:, voterindex] = oldballot
                 utiltable[:, b_i, m_i] = calc_utils(voter, winners, nwinners) - baseutils
             end

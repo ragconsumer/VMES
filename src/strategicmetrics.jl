@@ -98,7 +98,7 @@ function one_stratmetric_iter(metric::StrategicMetric, vmodel::VoterModel, metho
         midutindex = 0
         for basestrat in basestrats
             baseballots = castballots(electorate, basestrat, methods[1], infodict)
-            basewinnersets = [getwinners(baseballots, method, nwinners) for method in methods]
+            basewinnersets = [getwinners(baseballots, method, nwinners, electorate) for method in methods]
             innerstratmetric!(utiltotals, metric, electorate, basestrat.flexible_strategists,
                             methods, strat_templates, basestrat, 
                             baseballots, basewinnersets, infodict, 

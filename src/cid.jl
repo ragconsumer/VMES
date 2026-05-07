@@ -111,7 +111,7 @@ function one_cid_iter(vmodel::VoterModel,
     noisevector = correlatednoise .* randn(size(electorate,1))
     infodict = administerpolls(electorate, (estrats, methods), noisevector, iidnoise)
     baseballotarrays = castballots.((electorate,), estrats, methods, (infodict,))
-    basewinnersets = getwinners.(baseballotarrays, methods, nwinners)
+    basewinnersets = getwinners.(baseballotarrays, methods, nwinners, (electorate,))
     incentivecounts = zeros(Int, nsettings, nbucket)
     for candi in 1:ncand
         #buckets[:,i] gives the indicies of all voters in the ith bucket
@@ -133,7 +133,7 @@ function one_cid_iter(vmodel::VoterModel,
                     innercidbasic!(incentivecounts, candi,
                         perturbedvoters, bucketi, bucket,
                         baseballotarrays, basewinnersets, infodict, methods, estrats,
-                        nwinners, sign, which_changes)
+                        nwinners, sign, which_changes, electorate)
                 end
             end
         end
@@ -151,10 +151,10 @@ end
 Have the perturbed voters vote again using old polls and update incentivecounts
 """
 function innercidbasic!(incentivecounts::Matrix{Int}, cand::Int,
-                        perturbedvoters, bucketindex::Int, voterindices::Vector{Int},
+                        perturbedvoters, bucketindex::Int, voterindices::Vector{Int}, 
                         baseballotarrays::Vector, basewinnersets::Vector, infodict::Dict, 
                         methods::Vector{<:VotingMethod}, estrats::Vector{ElectorateStrategy},
-                        nwinners::Int, sign::Int, which_changes::NTuple{4, Bool})
+                        nwinners::Int, sign::Int, which_changes::NTuple{4, Bool}, electorate=[])
     for i in eachindex(methods, estrats)
         newballots = cidrevote(
             perturbedvoters, voterindices, estrats[i],
@@ -162,7 +162,7 @@ function innercidbasic!(incentivecounts::Matrix{Int}, cand::Int,
         ballots = baseballotarrays[i]
         oldballots = ballots[:, voterindices]
         ballots[:, voterindices] = newballots
-        new_winners = getwinners(ballots, methods[i], nwinners)
+        new_winners = getwinners(ballots, methods[i], nwinners, electorate)
         updateincentivecounts!(incentivecounts, i, bucketindex, new_winners, basewinnersets[i],
                                 cand, sign, which_changes)
         ballots[:, voterindices] = oldballots
@@ -189,7 +189,7 @@ function innercidnewpolls!(incentivecounts::Matrix{Int}, cand::Int,
         electorate, (estrats, methods), noisevector, iidnoise)
     ballots = castballots.((electorate,), estrats, methods, (infodict,))
     for i in eachindex(methods)
-        new_winners = getwinners(ballots[i], methods[i], nwinners)
+        new_winners = getwinners(ballots[i], methods[i], nwinners, electorate)
         updateincentivecounts!(incentivecounts, i, bucketindex, new_winners, basewinnersets[i],
                                 cand, sign, which_changes)
     end

@@ -208,7 +208,7 @@ function one_winner_quality_iter(vmodel::VoterModel,
     electorate = make_electorate(vmodel, nvot, ncand)
     infodict = administerpolls(electorate, (estrats, methods), correlatednoise, iidnoise)
     ballots = castballots.((electorate,), estrats, methods, (infodict,))
-    winnerlists = getwinners.(ballots, methods, nwinners)
+    winnerlists = getwinners.(ballots, methods, nwinners, (electorate,))
     winnersets = Set{Set{Int}}()
     winnersetlookup = Vector{Set{Int}}(undef, length(methods))
     for (i, winnerlist) in enumerate(winnerlists)

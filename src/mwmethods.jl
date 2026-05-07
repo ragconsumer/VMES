@@ -1028,6 +1028,10 @@ function tabulate(ballots, method::DTPMethod, nwinners::Int, electorate::Augment
     return results
 end
 
+function tabulate(ballots, method::DTPMethod, nwinners::Int)
+    throw(ArgumentError("DTP methods require an electorate argument with an AugmentedElectorate"))
+end
+
 """
 Reweighted Range Voting
 

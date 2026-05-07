@@ -52,6 +52,7 @@
         strats = [ElectorateStrategy(hon, 11) for _ in 1:3]
         vses = calc_winner_quality(10, VMES.TestModel(VMES.centersqueeze1), methods, strats, 11, 3, 1, metrics=[vse]).VSE
         @test vses ≈ [(10.5 - 32.5/3)/(13-32.5/3), (9 - 32.5/3)/(13-32.5/3), 1]
+        calc_winner_quality(2, VMES.quinn, [dtpstar], [ElectorateStrategy(hon, 11)], 11, 3, 2)
     end
 
     @testset "Primary VSE" begin
@@ -156,6 +157,7 @@
         df = calc_cid(10, VMES.TestModel(electorate), methods, estrats, 3, 3, 1, 1)
         @test df.CID == [0,1.5,1.5,3,0,0]
         @test df.Total == [0,10,10,20,0,0]
+        calc_cid(10, VMES.quinn, [dtpstar], [ElectorateStrategy(hon, 40)], 2, 5, 2, 20)
     end
 
     @testset "Cid summary statistics" begin
@@ -244,6 +246,7 @@
                             11, 5, iidnoise=0.1, seed=seed)
             #@test df1 == df2
         #end
+        calc_esif(10, VMES.quinn, [([dtpstar], [ElectorateStrategy(hon, 10)], [bullet])], 10, 4, nwinners=2)
     end
 
     @testset "Strategy Statistics" begin

@@ -71,6 +71,10 @@ function tabulate(ballots, method::VotingMethod, nwinners::Int)
     end
 end
 
+function tabulate(ballots, method::VotingMethod, nwinners::Int, electorate)
+    tabulate(ballots, method, nwinners)
+end
+
 tabulate(ballots, method::ApprovalMethod, ::Int) = tabulate(ballots, method)
 
 """
@@ -133,6 +137,10 @@ Determine the winners for the given ballots and voting method.
 """
 function getwinners(ballots::AbstractArray, method::VotingMethod, nwinners=1)
     winnersfromtab(tabulate(ballots, method, nwinners), method, nwinners)
+end
+
+function getwinners(ballots::AbstractArray, method::VotingMethod, nwinners::Int, electorate)
+    winnersfromtab(tabulate(ballots, method, nwinners, electorate), method, nwinners)
 end
 
 """    
