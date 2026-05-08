@@ -306,12 +306,26 @@ function weightedstarrunoff(prev_results, ballots, weights)
 end
 
 #weightgiven options
-allweight(_, weight, _) = weight
-sssweight(score, weight, method) = weight*score/method.maxscore
+allweight(_, weight, _...) = weight
+sssweight(score, weight, method, _...) = weight*score/method.maxscore
+function issweight(score, weight, method, ballot, electedcands)
+    if score >= maximum(s for (i, s) in enumerate(ballot) if i ∉ electedcands)
+        return weight
+    else
+        return weight*score/method.maxscore
+    end
+end
 
 #quota priority options
-justscore(score, weight) = score
-weightedpriority(score, weight) = score*weight
+justscore(score, weight, _...) = score
+weightedpriority(score, weight, _...) = score*weight
+function topscorepriority(score, weight, ballot, electedcands)
+    if score >= maximum(s for (i, s) in enumerate(ballot) if i ∉ electedcands)
+        return score + 1024 #the 1024 makes sure the ballot is always prioritized.
+    else
+        return score
+    end
+end
 
 """
     sssreweight!(weights::Vector{Float64}, method::VotingMethod, ballots::Matrix, new_winner::Int, nwinners::Int, _)
@@ -334,11 +348,12 @@ end
 
     Reweight in accordance with Allocated Score or a variant like S5H.
 """
-function asreweight!(weights::Vector{Float64}, method::VotingMethod, ballots::Matrix, new_winner::Int, nwinners::Int, _)
+function asreweight!(weights::Vector{Float64}, method::VotingMethod, ballots::Matrix, new_winner::Int,
+                    nwinners::Int, electedcands)
     nvot = size(ballots, 2)
     #wsi = weight, score, index
-    wsis = [(method.weightgiven(ballots[new_winner, i], weights[i], method),
-            method.quotapriority(ballots[new_winner, i], weights[i]),
+    wsis = [(method.weightgiven(ballots[new_winner, i], weights[i], method, ballots[:, i], electedcands),
+            method.quotapriority(ballots[new_winner, i], weights[i], ballots[:, i], electedcands),
             i)
             for i in eachindex(weights)]
     sort!(wsis, by= wsi -> -wsi[2])
@@ -492,6 +507,14 @@ end
 @namevm s5hwr = ScorePRTemplate(
     5, droop, weightedscorecount, allrunoffs, weightedstarrunoff,
     asreweight!, sssweight, weightedpriority
+)
+@namevm iss = ScorePRTemplate(
+    5, droop, weightedscorecount, norunoffs, nothing,
+    asreweight!, issweight, topscorepriority
+)
+@namevm issr = ScorePRTemplate(
+    5, droop, weightedscorecount, allrunoffs, weightedstarrunoff,
+    asreweight!, issweight, topscorepriority
 )
 
 @namevm blockstar = ScorePRTemplate(

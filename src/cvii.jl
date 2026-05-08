@@ -128,13 +128,13 @@ function one_cvii_iter(vmodel::VoterModel,
             #base_ballots = [independent_ballots base_loyalist_ballots]
             ballots = [independent_ballots copy(base_loyalist_ballots)]
             for (method_i, method) in enumerate(methods)
-               basewinners = getwinners(ballots, method, nwinners)
+               basewinners = getwinners(ballots, method, nwinners, independents)
                abstain_winners = Matrix{Int}(undef, nwinners, ncand)
                # For each candidate, find the results if that candidate's loyalists abstain
                for cand in 1:ncand
                   ballots[:, independentvoters+(cand-1)*loyalists_per_cand+1:independentvoters+(cand)*loyalists_per_cand] =
                      instruct_votes(cand, abstaininstruction, loyalists_per_cand, ncand, method)
-                  abstain_winners[:, cand] = getwinners(ballots, method, nwinners)
+                  abstain_winners[:, cand] = getwinners(ballots, method, nwinners, independents)
                   ballots[:, independentvoters+(cand-1)*loyalists_per_cand+1:independentvoters+(cand)*loyalists_per_cand] =
                      base_loyalist_ballots[:, (cand-1)*loyalists_per_cand+1:(cand)*loyalists_per_cand]
                end
@@ -151,7 +151,7 @@ function one_cvii_iter(vmodel::VoterModel,
                         instruct_votes(position, istrat, loyalists_per_cand, ncand, methods[1],
                                        info_for_strat, targets[instructor_number]...)
                   end
-                  new_winners = getwinners(ballots, method, nwinners)
+                  new_winners = getwinners(ballots, method, nwinners, independents)
                   # Record the results
                   for (cand_position, cand) in enumerate(cands_to_track)
                      if cand in new_winners

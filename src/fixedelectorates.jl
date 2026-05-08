@@ -46,3 +46,8 @@ scoretest3 = [repeat([0,2,3,5], outer = (1,9));;
                 repeat([0,4,5,0], outer=(1,5));;
                 repeat([0,5,4,0], outer=(1,5));;
                 repeat([5,0,0,0], outer=(1,4))]
+scoretest4 = [repeat([5,4,0,5], outer=(1,5));;
+                repeat([5,3,3,0], outer=(1,5));;
+                repeat([3,5,0,0], outer=(1,5));;
+                repeat([2,2,5,0], outer=(1,5));;
+                repeat([2,2,0,5], outer=(1,5))]

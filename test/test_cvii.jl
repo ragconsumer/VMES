@@ -89,6 +89,9 @@
         for i in 1:5
             @test results[2i, "FG Wins"] + results[2i-1, "FG Wins"] == niter #A candidate who benefits from endorsements always wins
         end
+        calc_cvii(3, VMES.quinn, [([dtpstar], [ElectorateStrategy(hon, 5)],
+                    [bulletinstruction], [ArbitrarySelector(2,2),ArbitrarySelector(1,2)],
+                    [[AssistInstruction(1), AssistInstruction(1)], [AssistInstruction(1)]])], 5, 51, 3, 2)
     end
 
 end

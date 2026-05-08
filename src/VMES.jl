@@ -4,7 +4,7 @@ export tabulate, winnersfromtab, getwinners
 export plurality, pluralitytop2, approval, approvaltop2, score, star, irv, rcv, buirv, borda, minimax, rankedrobin
 export smithirv, smithplurality, smithscore
 export sss, allocatedscore, s5h, sssr, asr, s5hr, sssfr, asfr, s5hfr, asu, asur, mes, mesdroop, scv, scvr, blockstar
-export tea, teadroop, dtpstar, allocatedrankedrobin, rrv, seqmonroe
+export tea, teadroop, dtpstar, allocatedrankedrobin, rrv, seqmonroe, iss, issr
 export stvminimax, stv, sntv, LimitedVoting
 export spav, spav_sl, spav_msl
 export vote

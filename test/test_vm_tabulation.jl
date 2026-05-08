@@ -147,6 +147,10 @@
         weights = [1,.5,1,0.5, 0.25]
         VMES.asreweight!(weights, s5h, [5;;0;;4;;3;;0], 1, 2, Set())
         @test weights ≈ [0,0.5,0.2,0.3, 0.25]
+        @test VMES.topscorepriority(5, 1, [5,4,3], Set()) == 1029
+        @test VMES.topscorepriority(4, 1, [5,4,3], Set()) == 4
+        @test VMES.topscorepriority(4, 1, [5,4,3], Set(1)) == 1028
+        @test VMES.topscorepriority(3, 1, [5,4,3], Set(1)) == 3
 
         ec = Set([1,4])
         @test VMES.addwinner!(ec, [9,1,5,5,5]) == (3, 5)
@@ -189,6 +193,10 @@
                                                                     30.0   25.0
                                                                     25.0   25.0
                                                                     87.5   12.5]
+        @test VMES.tabulate(VMES.scoretest4, VMES.iss, 3) ≈  [85.0  85.0  85.0
+                                                                80.0  55.5  55.5
+                                                                40.0  29.5  25.0
+                                                                50.0  32.5  30.0]
     end
 
     tab = VMES.hontabulate(VMES.centersqueeze1, VMES.allocatedrankedrobin, 2)
